@@ -22,6 +22,12 @@ EXCLUDE_TERMS = [
     "reissue",
     "replica",
     "copy",
+    "custom",
+    "custom shop",
+    "japan",
+    "made in japan",
+    "mij",
+    "banner",
     "tribute",
 ]
 
@@ -40,8 +46,8 @@ BOOST_TERMS = [
 ]
 
 # ── Notification (Gmail) ─────────────────────────────────────────
-NOTIFY_EMAIL = "YOUR_EMAIL@gmail.com"        # where alerts are sent TO
-GMAIL_SENDER  = "YOUR_GMAIL@gmail.com"       # the Gmail account sending alerts
+NOTIFY_EMAIL = "danielswilkinson@gmail.com"        # where alerts are sent TO
+GMAIL_SENDER  = "togetheralone.j45@gmail.com"       # the Gmail account sending alerts
 # GMAIL_APP_PASSWORD is set as a GitHub Actions secret (never put it here)
 
 # ── Scrape Interval ──────────────────────────────────────────────
