@@ -161,45 +161,66 @@ def _fetch_thunder_road() -> list[dict]:
 
 
 def _fetch_dream_guitars() -> list[dict]:
-    """Dream Guitars — WordPress/WooCommerce."""
+    """
+    Dream Guitars — WooCommerce site.
+    Search results are JS-rendered so we scrape their vintage steel-string
+    category pages instead which are server-rendered.
+    """
     results = []
-    urls = [
-        "https://www.dreamguitars.com/?s=gibson+j-45&post_type=product",
-        "https://www.dreamguitars.com/?s=gibson+j-50&post_type=product",
-        "https://www.dreamguitars.com/?s=gibson+country+western&post_type=product",
+    seen = set()
+
+    # Their vintage category pages are server-rendered and paginated
+    base_urls = [
+        "https://www.dreamguitars.com/shop/instruments/guitars/steel-string-guitars/vintage-steel-string-guitars/",
+        "https://www.dreamguitars.com/shop/instruments/guitars/steel-string-guitars/flattop/",
     ]
-    for url in urls:
-        try:
-            resp = requests.get(url, headers=HEADERS, timeout=20)
-            resp.raise_for_status()
-            soup = BeautifulSoup(resp.text, "html.parser")
 
-            for card in soup.select("li.product, .product-item, article.product"):
-                title_el = card.select_one("h2, h3, .woocommerce-loop-product__title")
-                price_el = card.select_one(".price, .amount, ins .amount")
-                link_el  = card.select_one("a[href]")
-                img_el   = card.select_one("img[src]")
+    for base_url in base_urls:
+        for page in range(1, 5):
+            url = base_url if page == 1 else f"{base_url}page/{page}/"
+            try:
+                resp = requests.get(url, headers=HEADERS, timeout=20)
+                if resp.status_code == 404:
+                    break
+                resp.raise_for_status()
+                soup = BeautifulSoup(resp.text, "html.parser")
 
-                title = title_el.get_text(strip=True) if title_el else ""
-                price = _parse_price(price_el.get_text(strip=True) if price_el else "")
-                href  = link_el["href"] if link_el else ""
+                cards = soup.select("li.product, .product, [class*='product-item']")
+                if not cards:
+                    break
 
-                if not title or len(title) < 5:
-                    continue
-                if price and not (PRICE_MIN <= price <= PRICE_MAX):
-                    continue
+                for card in cards:
+                    title_el = card.select_one("h2, h3, .woocommerce-loop-product__title, .product-title")
+                    price_el = card.select_one(".price, .amount, ins .amount")
+                    link_el  = card.select_one("a[href]")
+                    img_el   = card.select_one("img[src], img[data-src]")
 
-                results.append({
-                    "source":      "Dream Guitars",
-                    "id":          f"dream_{_slug(href)}",
-                    "title":       title,
-                    "price":       price,
-                    "url":         href,
-                    "description": card.get_text(separator=" ", strip=True)[:400],
-                    "image_url":   img_el["src"] if img_el else "",
-                })
-        except Exception as e:
-            print(f"[Dream Guitars] Error: {e}")
+                    title = title_el.get_text(strip=True) if title_el else ""
+                    price = _parse_price(price_el.get_text(strip=True) if price_el else "")
+                    href  = link_el["href"] if link_el else ""
+                    img   = (img_el.get("src") or img_el.get("data-src", "")) if img_el else ""
+
+                    if not title or len(title) < 5:
+                        continue
+                    if href in seen:
+                        continue
+                    seen.add(href)
+                    if price and not (PRICE_MIN <= price <= PRICE_MAX):
+                        continue
+
+                    results.append({
+                        "source":      "Dream Guitars",
+                        "id":          f"dream_{_slug(href)}",
+                        "title":       title,
+                        "price":       price,
+                        "url":         href,
+                        "description": card.get_text(separator=" ", strip=True)[:400],
+                        "image_url":   img,
+                    })
+
+            except Exception as e:
+                print(f"[Dream Guitars] Error {url}: {e}")
+                break
 
     print(f"[Dream Guitars] Found {len(results)} listings")
     return results
