@@ -112,7 +112,24 @@ def _listing_card(l: dict, compact: bool = False) -> str:
     )
 
     if compact:
-        # Compact row — no image, tighter padding
+        # Compact row — same image logic as full card, slightly smaller
+        if image_url:
+            compact_image = f'''
+              <td width="90" style="padding:0 12px 0 0;vertical-align:top;">
+                <a href="{url}">
+                  <img src="{image_url}" width="80" height="60"
+                       style="border-radius:5px;object-fit:cover;display:block;
+                              border:1px solid #e8e4dc;" alt="{title}">
+                </a>
+              </td>'''
+        else:
+            compact_image = '''
+              <td width="90" style="padding:0 12px 0 0;vertical-align:top;">
+                <div style="width:80px;height:60px;background:#f0ede8;border-radius:5px;
+                            display:table-cell;text-align:center;vertical-align:middle;
+                            font-size:20px;border:1px solid #e8e4dc;">🎸</div>
+              </td>'''
+
         return f'''
         <tr>
           <td style="padding:0 0 8px 0;">
@@ -123,6 +140,7 @@ def _listing_card(l: dict, compact: bool = False) -> str:
                 <td style="padding:12px 16px;">
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
+                      {compact_image}
                       <td>
                         <a href="{url}" style="font-size:13px;font-weight:600;
                           color:#1a1a1a;text-decoration:none;line-height:1.3;
