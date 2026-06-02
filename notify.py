@@ -29,6 +29,9 @@ SOURCE_COLORS = {
     "Chicago Music Exchange":  "#555",
     "Elderly Instruments":     "#555",
     "Cream City Music":        "#555",
+    "Guitar Center":            "#c8102e",
+    "The Gear Page":            "#2b5797",
+    "Bernunzio Uptown Music":   "#8b6914",
 }
 
 
