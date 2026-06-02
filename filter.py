@@ -73,15 +73,25 @@ def _evaluate(listing: dict) -> dict | None:
     score = 0
     match_reasons = []
 
-    if years_found:
-        score += 3
-        match_reasons.append(f"year mention: {', '.join(set(years_found))}")
+    # Year in range is the baseline signal
+    score += 3
+    match_reasons.append(f"year: {', '.join(sorted(set(in_range)))}")
+
+    # J-45 specifically gets a boost — it's the primary target
+    if "j-45" in blob or "j45" in blob:
+        score += 2
+        match_reasons.append("J-45")
+
+    # Country Western gets a boost too — rarer and highly desirable
+    if "country western" in blob:
+        score += 1
+        match_reasons.append("Country Western")
 
     for term in BOOST_TERMS:
         if term.lower() in blob:
             score += 1
             match_reasons.append(term)
 
-    listing["score"]        = score
+    listing["score"]         = score
     listing["match_reasons"] = match_reasons
     return listing
