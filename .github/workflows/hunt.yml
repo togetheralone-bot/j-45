@@ -61,6 +61,7 @@ jobs:
           SUPABASE_KEY:       ${{ secrets.SUPABASE_KEY }}
           NOTIFY_EMAIL:       ${{ secrets.NOTIFY_EMAIL }}
           GMAIL_SENDER:       ${{ secrets.GMAIL_SENDER }}
+          SMS_EMAIL: ${{ secrets.SMS_EMAIL }}
         run: |
           MODE="${{ github.event.inputs.mode || 'normal' }}"
           if   [ "$MODE" = "test" ];       then python hunt.py --test
