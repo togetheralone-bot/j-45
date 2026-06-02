@@ -54,13 +54,14 @@ def _evaluate(listing: dict) -> dict | None:
         if term.lower() in blob:
             return None
 
-    # ── 4. Year check (if a year is mentioned) ───────────────────
-    years_found = re.findall(r"\b(19[3-9]\d)\b", blob)
-    if years_found:
-        # At least one mentioned year must fall in range
-        in_range = [y for y in years_found if YEAR_MIN <= int(y) <= YEAR_MAX]
-        if not in_range:
-            return None
+# ── 4. Year check (strict) ───────────────────────────────────
+years_found = re.findall(r"\b(19[3-9]\d)\b", blob)
+if not years_found:
+    return None  # No vintage year mentioned at all — skip it
+in_range = [y for y in years_found if YEAR_MIN <= int(y) <= YEAR_MAX]
+if not in_range:
+    return None  # Years mentioned but none in 1956–1965 — skip it
+
 
     # ── 5. Price check ───────────────────────────────────────────
     price = listing.get("price")
