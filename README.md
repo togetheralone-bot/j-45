@@ -1,7 +1,7 @@
 # 🎸 J45 Hunter
 
 Monitors Reverb, eBay, GBase, 7 vintage dealer shops, Craigslist (18 cities), and the Acoustic Guitar Forum for your exact specs — every 20 minutes, 24/7, for free.
-
+ 
 ## Your Search Specs
 
 | Setting | Value |
