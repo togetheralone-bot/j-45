@@ -215,29 +215,41 @@ def _listing_card(l: dict, compact: bool = False) -> str:
         </tr>'''
 
 
+def _is_j45(l: dict) -> bool:
+    blob = f"{l.get('title','')} {l.get('description','')}".lower()
+    return "j-45" in blob or "j45" in blob or "country western" in blob
+
+
+def _section(title: str, listings: list[dict], compact: bool, gold: bool = False) -> str:
+    if not listings:
+        return ""
+    color  = "#c8a84b" if gold else "#888"
+    prefix = "✦ " if gold else ""
+    cards  = "".join(_listing_card(l, compact=compact) for l in listings)
+    return f'''
+        <tr><td style="padding:16px 0 10px 0;">
+          <span style="font-size:11px;font-weight:600;color:{color};
+                       text-transform:uppercase;letter-spacing:0.8px;">{prefix}{title}</span>
+        </td></tr>
+        {cards}
+        <tr><td style="padding:4px 0 12px 0;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="border-top:1px solid #e8e4dc;"></td></tr>
+          </table>
+        </td></tr>'''
+
+
 def _build_html(new_listings: list[dict], previous: list[dict]) -> str:
-    new_cards  = "".join(_listing_card(l, compact=False) for l in new_listings)
-    prev_cards = "".join(_listing_card(l, compact=True)  for l in previous)
+    new_j45   = [l for l in new_listings if     _is_j45(l)]
+    new_other = [l for l in new_listings if not _is_j45(l)]
+    prev_j45  = [l for l in previous     if     _is_j45(l)]
+    prev_other= [l for l in previous     if not _is_j45(l)]
 
-    previous_section = ""
-    if previous:
-        previous_section = f'''
-        <!-- Divider -->
-        <tr><td style="padding:8px 0 16px 0;">
-          <table width="100%" cellpadding="0" cellspacing="0"><tr>
-            <td style="border-top:1px solid #e0dbd0;"></td>
-          </tr></table>
-        </td></tr>
-
-        <!-- Previous heading -->
-        <tr><td style="padding:0 0 12px 0;">
-          <span style="font-size:11px;font-weight:600;color:#888;
-                       text-transform:uppercase;letter-spacing:0.8px;">
-            Previously active — {len(previous)} listing{'s' if len(previous) != 1 else ''}
-          </span>
-        </td></tr>
-
-        {prev_cards}'''
+    body = ""
+    body += _section(f"New listings — J-45 ({len(new_j45)})",              new_j45,    compact=False, gold=True)
+    body += _section(f"New listings — J-50 & Country Western ({len(new_other)})", new_other, compact=False, gold=True)
+    body += _section(f"Previous listings — J-45 ({len(prev_j45)})",        prev_j45,   compact=True,  gold=False)
+    body += _section(f"Previous listings — J-50 & Country Western ({len(prev_other)})", prev_other, compact=True, gold=False)
 
     lowest     = min((l["price"] for l in new_listings if l.get("price")), default=None)
     lowest_str = f"${lowest:,.0f}" if lowest else "—"
@@ -298,16 +310,7 @@ def _build_html(new_listings: list[dict], previous: list[dict]) -> str:
                         border-left:1px solid #e8e4dc;border-right:1px solid #e8e4dc;">
           <table width="100%" cellpadding="0" cellspacing="0">
 
-            <!-- New listings heading -->
-            <tr><td style="padding:0 0 12px 0;">
-              <span style="font-size:11px;font-weight:600;color:#c8a84b;
-                           text-transform:uppercase;letter-spacing:0.8px;">
-                ✦ New listings
-              </span>
-            </td></tr>
-
-            {new_cards}
-            {previous_section}
+            {body}
 
           </table>
         </td></tr>
@@ -327,16 +330,26 @@ def _build_html(new_listings: list[dict], previous: list[dict]) -> str:
 </html>"""
 
 
-def _build_plain(new_listings: list[dict], previous: list[dict]) -> str:
-    lines = ["J45 Hunter — New Listings\n", "=" * 40]
-    for l in new_listings:
+def _plain_section(title: str, listings: list[dict]) -> list[str]:
+    if not listings:
+        return []
+    lines = [f"\n{title}", "=" * 40]
+    for l in listings:
         price_str = f"${l['price']:,.0f}" if l.get("price") else "Price not listed"
         lines += [f"\n{l['title']}", f"Source : {l.get('source','')}",
                   f"Price  : {price_str}", f"URL    : {l.get('url','')}", "-" * 40]
-    if previous:
-        lines += ["\n\nPreviously Active\n" + "=" * 40]
-        for l in previous:
-            price_str = f"${l['price']:,.0f}" if l.get("price") else "Price not listed"
-            lines += [f"\n{l['title']}", f"Source : {l.get('source','')}",
-                      f"Price  : {price_str}", f"URL    : {l.get('url','')}", "-" * 40]
+    return lines
+
+
+def _build_plain(new_listings: list[dict], previous: list[dict]) -> str:
+    new_j45    = [l for l in new_listings if     _is_j45(l)]
+    new_other  = [l for l in new_listings if not _is_j45(l)]
+    prev_j45   = [l for l in previous     if     _is_j45(l)]
+    prev_other = [l for l in previous     if not _is_j45(l)]
+
+    lines = ["J45 Hunter\n"]
+    lines += _plain_section("NEW — J-45", new_j45)
+    lines += _plain_section("NEW — J-50 & Country Western", new_other)
+    lines += _plain_section("PREVIOUS — J-45", prev_j45)
+    lines += _plain_section("PREVIOUS — J-50 & Country Western", prev_other)
     return "\n".join(lines)
