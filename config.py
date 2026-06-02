@@ -40,8 +40,8 @@ BOOST_TERMS = [
 ]
 
 # ── Notification (Gmail) ─────────────────────────────────────────
-NOTIFY_EMAIL = "danielswilkinson@gmail.com"        # where alerts are sent TO
-GMAIL_SENDER  = "togetheralone.j45@gmail.com"       # the Gmail account sending alerts
+NOTIFY_EMAIL = "set-via-github-secret"
+GMAIL_SENDER  = "set-via-github-secret"
 # GMAIL_APP_PASSWORD is set as a GitHub Actions secret (never put it here)
 
 # ── SMS Notification (T-Mobile email-to-SMS) ─────────────────────
