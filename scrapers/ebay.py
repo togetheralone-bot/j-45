@@ -20,12 +20,12 @@ HEADERS = {
 }
 
 # rssbay.net feed URL format
-# globalId=EBAY-US, buyitnow=1 (fixed price), condition=3000 (used)
+# Uses /feed endpoint with keyword (singular), globalId, price range
 BASE = "https://rssbay.net/feed"
 
 SEARCHES = [
-    "gibson j-45 vintage 1950s 1960s",
-    "gibson j-50 vintage 1950s 1960s",
+    "gibson j-45 vintage",
+    "gibson j-50 vintage",
     "gibson country western guitar vintage",
 ]
 
@@ -35,12 +35,13 @@ def fetch() -> list[dict]:
 
     for query in SEARCHES:
         url = (
-            f"{BASE}?keywords={query.replace(' ', '+')}"
+            f"{BASE}?keyword={query.replace(' ', '+')}"
             f"&globalId=EBAY-US"
             f"&buyitnow=1"
-            f"&condition=3000"
-            f"&minPrice={PRICE_MIN}"
-            f"&maxPrice={PRICE_MAX}"
+            f"&auction=1"
+            f"&condition=-"
+            f"&MinPrice={PRICE_MIN}"
+            f"&MaxPrice={PRICE_MAX}"
         )
         try:
             resp = requests.get(url, headers=HEADERS, timeout=20)
