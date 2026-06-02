@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """
 J45 Hunter — Main entrypoint.
-Run this directly or let GitHub Actions call it on a schedule.
 
 Usage:
     python hunt.py                # Normal run (alert on new listings only)
     python hunt.py --test         # Print top matches, no email, no state update
-    python hunt.py --email-test   # Send a real email with top 20 matches, no state update
-    python hunt.py --reset        # Clear seen listings (get alerted on everything again)
+    python hunt.py --email-test   # Send real email with top 20 matches, no state update
+    python hunt.py --reset        # Clear seen listings
 """
 
 import sys
@@ -71,18 +70,20 @@ def main(test_mode=False, reset_mode=False, email_test_mode=False):
         top20 = matched[:20]
         print(f"\n  📧 EMAIL TEST — Sending top {len(top20)} matches to your inbox...")
         print(f"  (Seen listings NOT updated)\n")
-        send_alerts(top20)
+        # Treat first 3 as "new", rest as "previous" for preview purposes
+        send_alerts(new_listings=top20[:3], all_active=top20)
         print("\n  ✓ Done. Check your inbox.\n")
         return
 
     # ── Find new listings ────────────────────────────────────────
-    seen      = load_seen()
-    new_ones  = find_new(matched, seen)
+    seen     = load_seen()
+    new_ones = find_new(matched, seen)
     print(f"  New since last run: {len(new_ones)}")
 
     if new_ones:
         print(f"\n  🎸 Sending alert for {len(new_ones)} new listing(s)...")
-        send_alerts(new_ones)
+        # Pass new listings + full active list (up to 20 for previous section)
+        send_alerts(new_listings=new_ones, all_active=matched[:20])
 
     # ── Update seen ──────────────────────────────────────────────
     updated_seen = mark_seen(matched, seen)
