@@ -4,9 +4,10 @@ J45 Hunter — Main entrypoint.
 Run this directly or let GitHub Actions call it on a schedule.
 
 Usage:
-    python hunt.py           # Normal run (alert on new listings only)
-    python hunt.py --test    # Print all current matches, don't send email or update seen
-    python hunt.py --reset   # Clear seen listings (get alerted on everything again)
+    python hunt.py                # Normal run (alert on new listings only)
+    python hunt.py --test         # Print top matches, no email, no state update
+    python hunt.py --email-test   # Send a real email with top 20 matches, no state update
+    python hunt.py --reset        # Clear seen listings (get alerted on everything again)
 """
 
 import sys
@@ -29,7 +30,7 @@ SCRAPER_MODULES = [
 ]
 
 
-def main(test_mode=False, reset_mode=False):
+def main(test_mode=False, reset_mode=False, email_test_mode=False):
     print(f"\n{'='*50}")
     print(f"  J45 Hunter  —  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print(f"{'='*50}\n")
@@ -66,6 +67,14 @@ def main(test_mode=False, reset_mode=False):
             print(f"       Reasons: {', '.join(l.get('match_reasons', []))}\n")
         return
 
+    if email_test_mode:
+        top20 = matched[:20]
+        print(f"\n  📧 EMAIL TEST — Sending top {len(top20)} matches to your inbox...")
+        print(f"  (Seen listings NOT updated)\n")
+        send_alerts(top20)
+        print("\n  ✓ Done. Check your inbox.\n")
+        return
+
     # ── Find new listings ────────────────────────────────────────
     seen      = load_seen()
     new_ones  = find_new(matched, seen)
@@ -82,6 +91,7 @@ def main(test_mode=False, reset_mode=False):
 
 
 if __name__ == "__main__":
-    test_mode  = "--test"  in sys.argv
-    reset_mode = "--reset" in sys.argv
-    main(test_mode=test_mode, reset_mode=reset_mode)
+    test_mode       = "--test"       in sys.argv
+    reset_mode      = "--reset"      in sys.argv
+    email_test_mode = "--email-test" in sys.argv
+    main(test_mode=test_mode, reset_mode=reset_mode, email_test_mode=email_test_mode)
