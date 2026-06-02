@@ -110,7 +110,8 @@ def _text(el, tag: str) -> str:
 
 
 def _extract_price(text: str) -> float | None:
-    match = re.search(r"\$\s?([\d,]+\.?\d*)", text)
+    # rssbay uses "USD 4,500.00" format; also handle "$4,500"
+    match = re.search(r"(?:USD|\$)\s*([\d,]+\.?\d*)", text)
     if match:
         try:
             v = float(match.group(1).replace(",", ""))
