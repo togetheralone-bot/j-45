@@ -31,13 +31,26 @@ def fetch() -> list[dict]:
             data = resp.json()
 
             for listing in data.get("listings", []):
+                # Grab first photo URL if available
+                photos = listing.get("photos", [])
+                image_url = ""
+                if photos:
+                    # photos is a list of dicts with _links.large_crop.href
+                    try:
+                        image_url = photos[0].get("_links", {}).get("large_crop", {}).get("href", "")
+                        if not image_url:
+                            image_url = photos[0].get("_links", {}).get("full", {}).get("href", "")
+                    except (AttributeError, IndexError):
+                        pass
+
                 results.append({
-                    "source":   "Reverb",
-                    "id":       f"reverb_{listing.get('id')}",
-                    "title":    listing.get("title", ""),
-                    "price":    _parse_price(listing.get("price", {}).get("amount")),
-                    "url":      listing.get("_links", {}).get("web", {}).get("href", ""),
+                    "source":      "Reverb",
+                    "id":          f"reverb_{listing.get('id')}",
+                    "title":       listing.get("title", ""),
+                    "price":       _parse_price(listing.get("price", {}).get("amount")),
+                    "url":         listing.get("_links", {}).get("web", {}).get("href", ""),
                     "description": listing.get("description", ""),
+                    "image_url":   image_url,
                 })
 
         except Exception as e:
