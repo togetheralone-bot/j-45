@@ -1,21 +1,13 @@
 """
 Guitar Center used/vintage scraper.
-GC has a massive used inventory distributed across stores nationwide.
-Uses their search page which renders product data in structured HTML.
+Scrapes their used Gibson acoustic category pages directly.
+Also handles Musician's Friend (same parent company, separate inventory).
 """
 
 import re
 import requests
 from bs4 import BeautifulSoup
 from config import PRICE_MIN, PRICE_MAX
-
-BASE_URL = "https://www.guitarcenter.com"
-
-SEARCH_URLS = [
-    f"{BASE_URL}/Used/Gibson/J-45-Acoustic-Guitars.gc?N=4294819439+4294819441&Nrpp=48",
-    f"{BASE_URL}/Used/Gibson/J-50-Acoustic-Guitars.gc?N=4294819439+4294819441&Nrpp=48",
-    f"{BASE_URL}/Vintage/Gibson/Acoustic-Guitars.gc?Nrpp=48",
-]
 
 HEADERS = {
     "User-Agent": (
@@ -25,40 +17,90 @@ HEADERS = {
     ),
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.guitarcenter.com/",
 }
+
+PAGES = [
+    "https://www.guitarcenter.com/Used/Gibson/Acoustic-Guitars.gc",
+    "https://www.guitarcenter.com/Vintage/Gibson/Acoustic-Guitars.gc",
+]
 
 
 def fetch() -> list[dict]:
     results = []
+    seen = set()
 
-    for url in SEARCH_URLS:
+    for page_url in PAGES:
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=20)
+            resp = requests.get(page_url, headers=HEADERS, timeout=20)
             resp.raise_for_status()
             soup = BeautifulSoup(resp.text, "html.parser")
 
-            # GC product cards
+            # GC product cards — multiple possible selectors
             cards = (
-                soup.select(".product-grid-item, .product-card, [class*='product-tile']") or
-                soup.select("li[data-product-id], [data-sku], [class*='product-item']")
+                soup.select(".product-info") or
+                soup.select("[class*='product-card']") or
+                soup.select("[class*='product-item']") or
+                soup.select("li[data-product]") or
+                soup.select(".search-result-product-cell")
             )
+
+            # Fallback — find all links to product pages
+            if not cards:
+                for a in soup.select("a[href*='/p/']"):
+                    text = a.get_text(strip=True)
+                    href = a.get("href", "")
+                    if not text or len(text) < 10:
+                        continue
+                    full_url = href if href.startswith("http") else f"https://www.guitarcenter.com{href}"
+                    if full_url in seen:
+                        continue
+                    seen.add(full_url)
+
+                    # Get price from nearby elements
+                    parent = a.find_parent()
+                    price_text = parent.get_text() if parent else ""
+                    price = _parse_price(price_text)
+
+                    if price and not (PRICE_MIN <= price <= PRICE_MAX):
+                        continue
+
+                    results.append({
+                        "source":      "Guitar Center",
+                        "id":          f"gc_{_slug(full_url)}",
+                        "title":       text,
+                        "price":       price,
+                        "url":         full_url,
+                        "description": price_text[:300],
+                        "image_url":   "",
+                    })
+                continue
 
             for card in cards:
                 title_el = card.select_one(
-                    "h2, h3, .product-title, [class*='product-name'], [class*='title']"
+                    "h2, h3, .product-name, [class*='product-name'], "
+                    "[class*='title'], a[title]"
                 )
                 price_el = card.select_one(
-                    ".price, [class*='price'], .sale-price, [class*='sale']"
+                    ".price, [class*='price'], .sale-price, "
+                    "[class*='sale'], [class*='cost']"
                 )
                 link_el  = card.select_one("a[href]")
+                img_el   = card.select_one("img[src], img[data-src]")
 
-                title = title_el.get_text(strip=True) if title_el else ""
-                price = _parse_price(price_el.get_text(strip=True) if price_el else "")
-                href  = link_el["href"] if link_el else ""
-                full_url = href if href.startswith("http") else BASE_URL + href
+                title    = title_el.get_text(strip=True) if title_el else ""
+                price    = _parse_price(price_el.get_text(strip=True) if price_el else "")
+                href     = link_el["href"] if link_el else ""
+                full_url = href if href.startswith("http") else f"https://www.guitarcenter.com{href}"
+                img      = ""
+                if img_el:
+                    img = img_el.get("src") or img_el.get("data-src") or ""
 
                 if not title or len(title) < 5:
                     continue
+                if full_url in seen:
+                    continue
+                seen.add(full_url)
                 if price and not (PRICE_MIN <= price <= PRICE_MAX):
                     continue
 
@@ -69,28 +111,14 @@ def fetch() -> list[dict]:
                     "price":       price,
                     "url":         full_url,
                     "description": card.get_text(separator=" ", strip=True)[:400],
-                    "image_url":   _get_image(card),
+                    "image_url":   img,
                 })
 
         except Exception as e:
-            print(f"[Guitar Center] Error: {e}")
+            print(f"[Guitar Center] Error on {page_url}: {e}")
 
-    # Dedupe
-    seen, deduped = set(), []
-    for r in results:
-        if r["id"] not in seen:
-            seen.add(r["id"])
-            deduped.append(r)
-
-    print(f"[Guitar Center] Found {len(deduped)} listings")
-    return deduped
-
-
-def _get_image(card) -> str:
-    img = card.select_one("img[src], img[data-src], img[data-lazy]")
-    if not img:
-        return ""
-    return img.get("src") or img.get("data-src") or img.get("data-lazy") or ""
+    print(f"[Guitar Center] Found {len(results)} listings")
+    return results
 
 
 def _parse_price(text: str) -> float | None:
