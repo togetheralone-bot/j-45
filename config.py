@@ -7,12 +7,12 @@ Edit this file to change what you're hunting for.
 TARGET_MODELS = ["j-45", "j45", "j 45", "j-50", "j50", "j 50", "country western"]
 
 # ── Year Range ───────────────────────────────────────────────────
-YEAR_MIN = 1956
+YEAR_MIN = 1954
 YEAR_MAX = 1965
 
 # ── Price Range (USD) ────────────────────────────────────────────
 PRICE_MIN = 2000
-PRICE_MAX = 7500
+PRICE_MAX = 7000
 
 # ── Hard Exclusions (listing is dropped if any of these appear) ──
 EXCLUDE_TERMS = [
