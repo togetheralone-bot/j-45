@@ -2,7 +2,7 @@ name: J45 Hunter
 
 on:
   schedule:
-    - cron: "*/20 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -55,6 +55,8 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           EBAY_APP_ID:        ${{ secrets.EBAY_APP_ID }}
           EBAY_CERT_ID:       ${{ secrets.EBAY_CERT_ID }}
+          SUPABASE_URL:       ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY:       ${{ secrets.SUPABASE_KEY }}
         run: |
           MODE="${{ github.event.inputs.mode || 'normal' }}"
           if   [ "$MODE" = "test" ];       then python hunt.py --test
