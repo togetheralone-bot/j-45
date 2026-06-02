@@ -1,5 +1,6 @@
 """
-Gmail notification — sends a rich HTML email for new listings.
+Gmail notification — rich HTML email with new listings on top,
+previous active results below.
 """
 
 import os
@@ -31,7 +32,7 @@ SOURCE_COLORS = {
 }
 
 
-def send_alerts(new_listings: list[dict]) -> None:
+def send_alerts(new_listings: list[dict], all_active: list[dict] = None) -> None:
     if not new_listings:
         return
 
@@ -40,10 +41,16 @@ def send_alerts(new_listings: list[dict]) -> None:
         print("[Email] No GMAIL_APP_PASSWORD set — skipping.")
         return
 
+    all_active = all_active or []
+
+    # Previous = active listings that are NOT in the new batch
+    new_ids  = {l["id"] for l in new_listings}
+    previous = [l for l in all_active if l["id"] not in new_ids]
+
     count   = len(new_listings)
     subject = f"🎸 J45 Hunter: {count} new listing{'s' if count != 1 else ''} found"
-    html    = _build_html(new_listings)
-    plain   = _build_plain(new_listings)
+    html    = _build_html(new_listings, previous)
+    plain   = _build_plain(new_listings, previous)
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
@@ -56,68 +63,104 @@ def send_alerts(new_listings: list[dict]) -> None:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(GMAIL_SENDER, password)
             server.sendmail(GMAIL_SENDER, NOTIFY_EMAIL, msg.as_string())
-        print(f"[Email] Sent alert for {count} listing(s).")
+        print(f"[Email] Sent alert for {count} new + {len(previous)} previous listings.")
     except Exception as e:
         print(f"[Email] Failed to send: {e}")
 
 
-def _build_html(listings: list[dict]) -> str:
-    cards_html = ""
-    for l in listings:
-        price_str  = f"${l['price']:,.0f}" if l.get("price") else "Price not listed"
-        reasons    = l.get("match_reasons", [])
-        score      = l.get("score", 0)
-        source     = l.get("source", "")
-        image_url  = l.get("image_url", "")
-        url        = l.get("url", "")
-        title      = l.get("title", "")
-        source_color = SOURCE_COLORS.get(source, "#555")
+def _listing_card(l: dict, compact: bool = False) -> str:
+    """Render a single listing card. compact=True for the previous section."""
+    price_str    = f"${l['price']:,.0f}" if l.get("price") else "Price not listed"
+    reasons      = l.get("match_reasons", [])
+    score        = l.get("score", 0)
+    source       = l.get("source", "")
+    image_url    = l.get("image_url", "")
+    url          = l.get("url", "")
+    title        = l.get("title", "")
+    source_color = SOURCE_COLORS.get(source, "#555")
 
-        stars_filled = min(score, 5)
-        stars_empty  = 5 - stars_filled
-        stars_html   = (
-            '<span style="color:#c8a84b;font-size:14px;">' + "★" * stars_filled + '</span>'
-            '<span style="color:#ddd;font-size:14px;">' + "★" * stars_empty + '</span>'
-        )
+    stars_filled = min(score, 5)
+    stars_empty  = 5 - stars_filled
+    stars_html   = (
+        f'<span style="color:#c8a84b;font-size:{"12" if compact else "14"}px;">' + "★" * stars_filled + '</span>'
+        f'<span style="color:#ddd;font-size:{"12" if compact else "14"}px;">'    + "★" * stars_empty  + '</span>'
+    )
 
-        tags_html = "".join(
-            f'<span style="display:inline-block;background:#eef6ee;color:#2d6a2d;'
-            f'border-radius:4px;padding:2px 8px;font-size:11px;font-weight:500;'
-            f'margin:2px 3px 2px 0;">{r}</span>'
-            for r in reasons
-        )
+    tags_html = "".join(
+        f'<span style="display:inline-block;background:#eef6ee;color:#2d6a2d;'
+        f'border-radius:4px;padding:2px 7px;font-size:10px;font-weight:500;'
+        f'margin:2px 3px 2px 0;">{r}</span>'
+        for r in reasons
+    )
 
-        image_block = ""
+    source_badge = (
+        f'<span style="display:inline-block;background:{source_color}15;'
+        f'color:{source_color};border:1px solid {source_color}40;'
+        f'border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;'
+        f'margin-right:6px;">{source}</span>'
+    )
+
+    if compact:
+        # Compact row — no image, tighter padding
+        return f'''
+        <tr>
+          <td style="padding:0 0 8px 0;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="
+              background:#fafafa;border-radius:6px;
+              border:1px solid #ece9e2;">
+              <tr>
+                <td style="padding:12px 16px;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td>
+                        <a href="{url}" style="font-size:13px;font-weight:600;
+                          color:#1a1a1a;text-decoration:none;line-height:1.3;
+                          display:block;margin-bottom:4px;">{title}</a>
+                        <div style="margin-bottom:5px;">
+                          {source_badge}{stars_html}
+                        </div>
+                        <div>{tags_html}</div>
+                      </td>
+                      <td style="text-align:right;vertical-align:top;
+                                 white-space:nowrap;padding-left:12px;">
+                        <div style="font-size:18px;font-weight:700;color:#1a1a1a;
+                                    letter-spacing:-0.5px;margin-bottom:6px;">{price_str}</div>
+                        <a href="{url}" style="display:inline-block;background:#555;
+                          color:#fff;font-size:11px;font-weight:500;padding:5px 11px;
+                          border-radius:4px;text-decoration:none;">View →</a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>'''
+    else:
+        # Full card — with image
         if image_url:
             image_block = f'''
-            <td width="130" style="padding:0 16px 0 0;vertical-align:top;">
-              <a href="{url}">
-                <img src="{image_url}" width="120" height="90"
-                     style="border-radius:6px;object-fit:cover;display:block;border:1px solid #e8e4dc;"
-                     alt="{title}">
-              </a>
-            </td>'''
+              <td width="130" style="padding:0 16px 0 0;vertical-align:top;">
+                <a href="{url}">
+                  <img src="{image_url}" width="120" height="90"
+                       style="border-radius:6px;object-fit:cover;display:block;
+                              border:1px solid #e8e4dc;" alt="{title}">
+                </a>
+              </td>'''
         else:
             image_block = '''
-            <td width="130" style="padding:0 16px 0 0;vertical-align:top;">
-              <div style="width:120px;height:90px;background:#f0ede8;border-radius:6px;
-                          display:flex;align-items:center;justify-content:center;
-                          font-size:28px;border:1px solid #e8e4dc;">🎸</div>
-            </td>'''
+              <td width="130" style="padding:0 16px 0 0;vertical-align:top;">
+                <div style="width:120px;height:90px;background:#f0ede8;border-radius:6px;
+                            display:table-cell;text-align:center;vertical-align:middle;
+                            font-size:28px;border:1px solid #e8e4dc;">🎸</div>
+              </td>'''
 
-        source_badge = (
-            f'<span style="display:inline-block;background:{source_color}15;'
-            f'color:{source_color};border:1px solid {source_color}40;'
-            f'border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;'
-            f'margin-right:8px;">{source}</span>'
-        )
-
-        cards_html += f'''
+        return f'''
         <tr>
           <td style="padding:0 0 12px 0;">
             <table width="100%" cellpadding="0" cellspacing="0" style="
               background:#ffffff;border-radius:8px;
-              border:1px solid #e8e4dc;overflow:hidden;">
+              border:2px solid #c8a84b;">
               <tr>
                 <td style="padding:16px 20px;">
                   <table width="100%" cellpadding="0" cellspacing="0">
@@ -131,20 +174,19 @@ def _build_html(listings: list[dict]) -> str:
                                 color:#1a1a1a;text-decoration:none;line-height:1.3;
                                 display:block;margin-bottom:6px;">{title}</a>
                             </td>
-                            <td style="text-align:right;vertical-align:top;white-space:nowrap;
-                                       padding-left:12px;">
+                            <td style="text-align:right;vertical-align:top;
+                                       white-space:nowrap;padding-left:12px;">
                               <span style="font-size:22px;font-weight:700;color:#1a1a1a;
                                            letter-spacing:-0.5px;">{price_str}</span>
                             </td>
                           </tr>
                           <tr>
                             <td style="padding-bottom:8px;">
-                              {source_badge}
-                              {stars_html}
+                              {source_badge}{stars_html}
                             </td>
                             <td style="text-align:right;vertical-align:top;">
                               <a href="{url}" style="display:inline-block;background:#1a1a1a;
-                                color:#ffffff;font-size:12px;font-weight:500;padding:7px 14px;
+                                color:#fff;font-size:12px;font-weight:500;padding:7px 14px;
                                 border-radius:5px;text-decoration:none;">View →</a>
                             </td>
                           </tr>
@@ -161,16 +203,43 @@ def _build_html(listings: list[dict]) -> str:
           </td>
         </tr>'''
 
-    lowest = min((l["price"] for l in listings if l.get("price")), default=None)
+
+def _build_html(new_listings: list[dict], previous: list[dict]) -> str:
+    new_cards  = "".join(_listing_card(l, compact=False) for l in new_listings)
+    prev_cards = "".join(_listing_card(l, compact=True)  for l in previous)
+
+    previous_section = ""
+    if previous:
+        previous_section = f'''
+        <!-- Divider -->
+        <tr><td style="padding:8px 0 16px 0;">
+          <table width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="border-top:1px solid #e0dbd0;"></td>
+          </tr></table>
+        </td></tr>
+
+        <!-- Previous heading -->
+        <tr><td style="padding:0 0 12px 0;">
+          <span style="font-size:11px;font-weight:600;color:#888;
+                       text-transform:uppercase;letter-spacing:0.8px;">
+            Previously active — {len(previous)} listing{'s' if len(previous) != 1 else ''}
+          </span>
+        </td></tr>
+
+        {prev_cards}'''
+
+    lowest     = min((l["price"] for l in new_listings if l.get("price")), default=None)
     lowest_str = f"${lowest:,.0f}" if lowest else "—"
-    sources = ", ".join(sorted({l.get("source", "") for l in listings}))
-    count   = len(listings)
+    sources    = ", ".join(sorted({l.get("source", "") for l in new_listings}))
+    count      = len(new_listings)
 
     return f"""<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f0ede8;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0ede8;padding:32px 16px;">
+<body style="margin:0;padding:0;background:#f0ede8;
+             font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0"
+         style="background:#f0ede8;padding:32px 16px;">
     <tr><td align="center">
       <table width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;">
 
@@ -179,7 +248,7 @@ def _build_html(listings: list[dict]) -> str:
           <table width="100%" cellpadding="0" cellspacing="0"><tr>
             <td style="font-size:28px;width:44px;">🎸</td>
             <td style="padding-left:12px;">
-              <div style="color:#ffffff;font-size:18px;font-weight:600;letter-spacing:-0.3px;">
+              <div style="color:#fff;font-size:18px;font-weight:600;letter-spacing:-0.3px;">
                 J45 Hunter — {count} new listing{'s' if count != 1 else ''}
               </div>
               <div style="color:#888;font-size:13px;margin-top:2px;">
@@ -190,40 +259,54 @@ def _build_html(listings: list[dict]) -> str:
         </td></tr>
 
         <!-- Summary bar -->
-        <tr><td style="background:#f7f5f0;border-left:1px solid #e8e4dc;border-right:1px solid #e8e4dc;
+        <tr><td style="background:#f7f5f0;
+                        border-left:1px solid #e8e4dc;border-right:1px solid #e8e4dc;
                         padding:14px 32px;">
           <table width="100%" cellpadding="0" cellspacing="0"><tr>
             <td style="font-size:12px;color:#888;">
-              <strong style="color:#1a1a1a;font-size:15px;font-weight:600;display:block;">{count}</strong>
-              New today
+              <strong style="color:#1a1a1a;font-size:15px;font-weight:600;
+                             display:block;">{count}</strong>New today
             </td>
             <td style="font-size:12px;color:#888;">
-              <strong style="color:#1a1a1a;font-size:15px;font-weight:600;display:block;">{lowest_str}</strong>
-              Lowest price
+              <strong style="color:#1a1a1a;font-size:15px;font-weight:600;
+                             display:block;">{lowest_str}</strong>Lowest new
             </td>
             <td style="font-size:12px;color:#888;">
-              <strong style="color:#1a1a1a;font-size:13px;font-weight:600;display:block;">{sources[:40]}</strong>
-              Sources
+              <strong style="color:#1a1a1a;font-size:13px;font-weight:600;
+                             display:block;">{sources[:40]}</strong>Sources
+            </td>
+            <td style="font-size:12px;color:#888;">
+              <strong style="color:#1a1a1a;font-size:15px;font-weight:600;
+                             display:block;">{len(previous)}</strong>Still active
             </td>
           </tr></table>
         </td></tr>
 
-        <!-- Listings -->
+        <!-- Body -->
         <tr><td style="background:#f7f5f0;padding:16px 24px;
                         border-left:1px solid #e8e4dc;border-right:1px solid #e8e4dc;">
           <table width="100%" cellpadding="0" cellspacing="0">
-            {cards_html}
+
+            <!-- New listings heading -->
+            <tr><td style="padding:0 0 12px 0;">
+              <span style="font-size:11px;font-weight:600;color:#c8a84b;
+                           text-transform:uppercase;letter-spacing:0.8px;">
+                ✦ New listings
+              </span>
+            </td></tr>
+
+            {new_cards}
+            {previous_section}
+
           </table>
         </td></tr>
 
         <!-- Footer -->
         <tr><td style="background:#f0ede8;border:1px solid #e8e4dc;border-top:none;
                         border-radius:0 0 8px 8px;padding:16px 32px;">
-          <table width="100%" cellpadding="0" cellspacing="0"><tr>
-            <td style="font-size:11px;color:#aaa;line-height:1.6;">
-              J45 Hunter · Watching 12 sources · Every 20 min
-            </td>
-          </tr></table>
+          <p style="font-size:11px;color:#aaa;margin:0;line-height:1.6;">
+            J45 Hunter · Watching 12 sources · Every 20 min
+          </p>
         </td></tr>
 
       </table>
@@ -233,14 +316,16 @@ def _build_html(listings: list[dict]) -> str:
 </html>"""
 
 
-def _build_plain(listings: list[dict]) -> str:
+def _build_plain(new_listings: list[dict], previous: list[dict]) -> str:
     lines = ["J45 Hunter — New Listings\n", "=" * 40]
-    for l in listings:
+    for l in new_listings:
         price_str = f"${l['price']:,.0f}" if l.get("price") else "Price not listed"
-        lines.append(f"\n{l['title']}")
-        lines.append(f"Source : {l.get('source', '')}")
-        lines.append(f"Price  : {price_str}")
-        lines.append(f"Score  : {l.get('score', 0)}")
-        lines.append(f"URL    : {l.get('url', '')}")
-        lines.append("-" * 40)
+        lines += [f"\n{l['title']}", f"Source : {l.get('source','')}",
+                  f"Price  : {price_str}", f"URL    : {l.get('url','')}", "-" * 40]
+    if previous:
+        lines += ["\n\nPreviously Active\n" + "=" * 40]
+        for l in previous:
+            price_str = f"${l['price']:,.0f}" if l.get("price") else "Price not listed"
+            lines += [f"\n{l['title']}", f"Source : {l.get('source','')}",
+                      f"Price  : {price_str}", f"URL    : {l.get('url','')}", "-" * 40]
     return "\n".join(lines)
