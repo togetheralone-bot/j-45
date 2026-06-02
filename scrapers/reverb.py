@@ -2,8 +2,9 @@
 Reverb scraper — uses the public Reverb API (no auth required).
 
 Two search strategies:
-  1. Keyword search across all of Reverb (paginated, no condition filter)
+  1. Keyword search across all of Reverb
   2. Direct shop queries for dealers we know are on Reverb
+     (catches listings from Wix/custom sites that also sell on Reverb)
 """
 
 import requests
@@ -16,88 +17,49 @@ HEADERS = {
     "Accept-Version": "3.0",
 }
 
-# Dealers whose own sites are blocked/JS-rendered but who also sell on Reverb.
+# Dealers whose own sites are Wix/JS-rendered but who also sell on Reverb.
+# We query their Reverb shops directly to catch listings their site hides from scrapers.
 REVERB_SHOPS = [
     "austin-vintage-guitars",
     "rumble-seat-music",
-    "gruhn-guitars",
-    "normans-rare-guitars",
-    "guitar-center",
-    "cream-city-music",
-    "bernunzio-uptown-music",
-    "retrofret-vintage-guitars",
-    "dream-guitars",
 ]
 
-# Multiple targeted queries to maximize coverage.
-# No 'condition' filter — sellers categorize inconsistently, missing it cuts results.
-# Year queries added to catch listings that don't say "vintage" but have the decade in title.
 KEYWORD_QUERIES = [
     "gibson j-45 vintage",
-    "gibson j-45 1950s",
-    "gibson j-45 1960s",
     "gibson j-50 vintage",
-    "gibson j-50 1950s",
-    "gibson j-50 1960s",
     "gibson country western vintage",
-    "gibson j-45 1955",
-    "gibson j-45 1956",
-    "gibson j-45 1957",
-    "gibson j-45 1958",
-    "gibson j-45 1959",
-    "gibson j-45 1960",
-    "gibson j-45 1961",
-    "gibson j-45 1962",
-    "gibson j-45 1963",
-    "gibson j-45 1964",
-    "gibson j-45 1965",
-    "gibson j-45 1966",
-    "gibson j-45 1967",
-    "gibson j-45 1968",
-    "gibson j-45 1969",
 ]
-
-MAX_PAGES = 3  # 50 results × 3 pages = up to 150 per query
 
 
 def fetch() -> list[dict]:
     results = []
 
-    # 1. Broad keyword searches with pagination
+    # 1. Broad keyword searches
     for query in KEYWORD_QUERIES:
-        for page in range(1, MAX_PAGES + 1):
-            params = {
-                "query":     query,
-                "price_min": PRICE_MIN,
-                "price_max": PRICE_MAX,
-                "per_page":  50,
-                "page":      page,
-            }
-            try:
-                resp = requests.get(REVERB_API, headers=HEADERS, params=params, timeout=15)
-                resp.raise_for_status()
-                data = resp.json()
-                listings = data.get("listings", [])
-                if not listings:
-                    break  # No more results for this query
-                for listing in listings:
-                    results.append(_parse(listing, "Reverb"))
-                # If we got fewer than 50, no point fetching next page
-                if len(listings) < 50:
-                    break
-            except Exception as e:
-                print(f"[Reverb] Error on '{query}' p{page}: {e}")
-                break
+        params = {
+            "query":     query,
+            "condition": "used",
+            "price_min": PRICE_MIN,
+            "price_max": PRICE_MAX,
+            "per_page":  50,
+            "year_max":  YEAR_MAX,
+        }
+        try:
+            resp = requests.get(REVERB_API, headers=HEADERS, params=params, timeout=15)
+            resp.raise_for_status()
+            for listing in resp.json().get("listings", []):
+                results.append(_parse(listing, "Reverb"))
+        except Exception as e:
+            print(f"[Reverb] Error on '{query}': {e}")
 
-    # 2. Direct shop queries for dealers on Reverb
+    # 2. Direct shop queries for Wix dealers on Reverb
     for shop_slug in REVERB_SHOPS:
-        shop_url = f"{REVERB_API}?shop_slug={shop_slug}&per_page=50"
+        shop_url = f"https://api.reverb.com/api/listings?shop_slug={shop_slug}&per_page=50"
         try:
             resp = requests.get(shop_url, headers=HEADERS, timeout=15)
             resp.raise_for_status()
             shop_name = _shop_display_name(shop_slug)
-            listings = resp.json().get("listings", [])
-            for listing in listings:
+            for listing in resp.json().get("listings", []):
                 results.append(_parse(listing, shop_name))
         except Exception as e:
             print(f"[Reverb/{shop_slug}] Error: {e}")
@@ -138,15 +100,8 @@ def _parse(listing: dict, source: str) -> dict:
 
 def _shop_display_name(slug: str) -> str:
     names = {
-        "austin-vintage-guitars":   "Austin Vintage Guitars",
-        "rumble-seat-music":        "Rumble Seat Music",
-        "gruhn-guitars":            "Gruhn Guitars",
-        "normans-rare-guitars":     "Norman's Rare Guitars",
-        "guitar-center":            "Guitar Center",
-        "cream-city-music":         "Cream City Music",
-        "bernunzio-uptown-music":   "Bernunzio Uptown Music",
-        "retrofret-vintage-guitars": "Retrofret",
-        "dream-guitars":            "Dream Guitars",
+        "austin-vintage-guitars": "Austin Vintage Guitars",
+        "rumble-seat-music":      "Rumble Seat Music",
     }
     return names.get(slug, slug.replace("-", " ").title())
 
