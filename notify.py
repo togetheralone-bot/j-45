@@ -1,12 +1,5 @@
 """
-Gmail notification — sends an email alert for new listings.
-Uses Gmail's SMTP with an App Password (not your regular password).
-
-Setup:
-  1. Enable 2FA on your Google account
-  2. Go to myaccount.google.com → Security → App Passwords
-  3. Create a password for "Mail" / "Other (j45-hunter)"
-  4. Add it as GMAIL_APP_PASSWORD in GitHub Actions secrets
+Gmail notification — sends a rich HTML email for new listings.
 """
 
 import os
@@ -15,6 +8,28 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from config import NOTIFY_EMAIL, GMAIL_SENDER
 
+SOURCE_COLORS = {
+    "Reverb":                  "#e05c00",
+    "eBay":                    "#0064d2",
+    "GBase":                   "#2d6a2d",
+    "Craigslist":              "#7b3f9e",
+    "Facebook Marketplace":    "#1877f2",
+    "Acoustic Guitar Forum":   "#8b4513",
+    "Gruhn Guitars":           "#555",
+    "Retrofret":               "#555",
+    "Carter Vintage":          "#555",
+    "Emerald City Guitars":    "#2e7d32",
+    "Norman's Rare Guitars":   "#555",
+    "TR Crandall Guitars":     "#555",
+    "Austin Vintage Guitars":  "#bf4300",
+    "Gary's Classic Guitars":  "#555",
+    "Well Strung Guitars":     "#555",
+    "Dave's Guitar Shop":      "#555",
+    "Chicago Music Exchange":  "#555",
+    "Elderly Instruments":     "#555",
+    "Cream City Music":        "#555",
+}
+
 
 def send_alerts(new_listings: list[dict]) -> None:
     if not new_listings:
@@ -22,10 +37,11 @@ def send_alerts(new_listings: list[dict]) -> None:
 
     password = os.environ.get("GMAIL_APP_PASSWORD")
     if not password:
-        print("[Email] No GMAIL_APP_PASSWORD set — skipping notifications.")
+        print("[Email] No GMAIL_APP_PASSWORD set — skipping.")
         return
 
-    subject = f"🎸 J45 Hunter: {len(new_listings)} new listing{'s' if len(new_listings) != 1 else ''} found"
+    count   = len(new_listings)
+    subject = f"🎸 J45 Hunter: {count} new listing{'s' if count != 1 else ''} found"
     html    = _build_html(new_listings)
     plain   = _build_plain(new_listings)
 
@@ -34,63 +50,187 @@ def send_alerts(new_listings: list[dict]) -> None:
     msg["From"]    = GMAIL_SENDER
     msg["To"]      = NOTIFY_EMAIL
     msg.attach(MIMEText(plain, "plain"))
-    msg.attach(MIMEText(html, "html"))
+    msg.attach(MIMEText(html,  "html"))
 
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(GMAIL_SENDER, password)
             server.sendmail(GMAIL_SENDER, NOTIFY_EMAIL, msg.as_string())
-        print(f"[Email] Sent alert for {len(new_listings)} listing(s).")
+        print(f"[Email] Sent alert for {count} listing(s).")
     except Exception as e:
         print(f"[Email] Failed to send: {e}")
 
 
 def _build_html(listings: list[dict]) -> str:
-    rows = ""
+    cards_html = ""
     for l in listings:
-        price_str = f"${l['price']:,.0f}" if l.get("price") else "Price not listed"
-        reasons   = ", ".join(l.get("match_reasons", [])) or "—"
-        score     = l.get("score", 0)
-        stars     = "⭐" * min(score, 5)
+        price_str  = f"${l['price']:,.0f}" if l.get("price") else "Price not listed"
+        reasons    = l.get("match_reasons", [])
+        score      = l.get("score", 0)
+        source     = l.get("source", "")
+        image_url  = l.get("image_url", "")
+        url        = l.get("url", "")
+        title      = l.get("title", "")
+        source_color = SOURCE_COLORS.get(source, "#555")
 
-        rows += f"""
+        stars_filled = min(score, 5)
+        stars_empty  = 5 - stars_filled
+        stars_html   = (
+            '<span style="color:#c8a84b;font-size:14px;">' + "★" * stars_filled + '</span>'
+            '<span style="color:#ddd;font-size:14px;">' + "★" * stars_empty + '</span>'
+        )
+
+        tags_html = "".join(
+            f'<span style="display:inline-block;background:#eef6ee;color:#2d6a2d;'
+            f'border-radius:4px;padding:2px 8px;font-size:11px;font-weight:500;'
+            f'margin:2px 3px 2px 0;">{r}</span>'
+            for r in reasons
+        )
+
+        image_block = ""
+        if image_url:
+            image_block = f'''
+            <td width="130" style="padding:0 16px 0 0;vertical-align:top;">
+              <a href="{url}">
+                <img src="{image_url}" width="120" height="90"
+                     style="border-radius:6px;object-fit:cover;display:block;border:1px solid #e8e4dc;"
+                     alt="{title}">
+              </a>
+            </td>'''
+        else:
+            image_block = '''
+            <td width="130" style="padding:0 16px 0 0;vertical-align:top;">
+              <div style="width:120px;height:90px;background:#f0ede8;border-radius:6px;
+                          display:flex;align-items:center;justify-content:center;
+                          font-size:28px;border:1px solid #e8e4dc;">🎸</div>
+            </td>'''
+
+        source_badge = (
+            f'<span style="display:inline-block;background:{source_color}15;'
+            f'color:{source_color};border:1px solid {source_color}40;'
+            f'border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;'
+            f'margin-right:8px;">{source}</span>'
+        )
+
+        cards_html += f'''
         <tr>
-          <td style="padding:12px;border-bottom:1px solid #eee;">
-            <strong><a href="{l['url']}" style="color:#1a1a1a;text-decoration:none;">{l['title']}</a></strong><br>
-            <span style="color:#888;font-size:13px;">{l['source']}</span>
+          <td style="padding:0 0 12px 0;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="
+              background:#ffffff;border-radius:8px;
+              border:1px solid #e8e4dc;overflow:hidden;">
+              <tr>
+                <td style="padding:16px 20px;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      {image_block}
+                      <td style="vertical-align:top;">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td>
+                              <a href="{url}" style="font-size:15px;font-weight:600;
+                                color:#1a1a1a;text-decoration:none;line-height:1.3;
+                                display:block;margin-bottom:6px;">{title}</a>
+                            </td>
+                            <td style="text-align:right;vertical-align:top;white-space:nowrap;
+                                       padding-left:12px;">
+                              <span style="font-size:22px;font-weight:700;color:#1a1a1a;
+                                           letter-spacing:-0.5px;">{price_str}</span>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding-bottom:8px;">
+                              {source_badge}
+                              {stars_html}
+                            </td>
+                            <td style="text-align:right;vertical-align:top;">
+                              <a href="{url}" style="display:inline-block;background:#1a1a1a;
+                                color:#ffffff;font-size:12px;font-weight:500;padding:7px 14px;
+                                border-radius:5px;text-decoration:none;">View →</a>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td colspan="2">{tags_html}</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
           </td>
-          <td style="padding:12px;border-bottom:1px solid #eee;white-space:nowrap;">
-            <strong style="font-size:16px;">{price_str}</strong>
-          </td>
-          <td style="padding:12px;border-bottom:1px solid #eee;">
-            {stars}<br>
-            <span style="color:#888;font-size:12px;">{reasons}</span>
-          </td>
-          <td style="padding:12px;border-bottom:1px solid #eee;">
-            <a href="{l['url']}" style="background:#1a1a1a;color:#fff;padding:6px 14px;border-radius:4px;text-decoration:none;font-size:13px;">View →</a>
-          </td>
-        </tr>
-        """
+        </tr>'''
 
-    return f"""
-    <html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;max-width:700px;margin:0 auto;padding:20px;">
-      <h2 style="border-bottom:2px solid #1a1a1a;padding-bottom:10px;">🎸 J45 Hunter — New Listings</h2>
-      <table style="width:100%;border-collapse:collapse;">
-        <thead>
-          <tr style="background:#f5f5f5;">
-            <th style="padding:10px;text-align:left;">Listing</th>
-            <th style="padding:10px;text-align:left;">Price</th>
-            <th style="padding:10px;text-align:left;">Match Score</th>
-            <th style="padding:10px;text-align:left;"></th>
-          </tr>
-        </thead>
-        <tbody>{rows}</tbody>
+    lowest = min((l["price"] for l in listings if l.get("price")), default=None)
+    lowest_str = f"${lowest:,.0f}" if lowest else "—"
+    sources = ", ".join(sorted({l.get("source", "") for l in listings}))
+    count   = len(listings)
+
+    return f"""<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0ede8;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0ede8;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;">
+
+        <!-- Header -->
+        <tr><td style="background:#1a1a1a;border-radius:8px 8px 0 0;padding:24px 32px;">
+          <table width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="font-size:28px;width:44px;">🎸</td>
+            <td style="padding-left:12px;">
+              <div style="color:#ffffff;font-size:18px;font-weight:600;letter-spacing:-0.3px;">
+                J45 Hunter — {count} new listing{'s' if count != 1 else ''}
+              </div>
+              <div style="color:#888;font-size:13px;margin-top:2px;">
+                1956–1965 · $2,000–$7,500 · J-45, J-50, Country Western
+              </div>
+            </td>
+          </tr></table>
+        </td></tr>
+
+        <!-- Summary bar -->
+        <tr><td style="background:#f7f5f0;border-left:1px solid #e8e4dc;border-right:1px solid #e8e4dc;
+                        padding:14px 32px;">
+          <table width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="font-size:12px;color:#888;">
+              <strong style="color:#1a1a1a;font-size:15px;font-weight:600;display:block;">{count}</strong>
+              New today
+            </td>
+            <td style="font-size:12px;color:#888;">
+              <strong style="color:#1a1a1a;font-size:15px;font-weight:600;display:block;">{lowest_str}</strong>
+              Lowest price
+            </td>
+            <td style="font-size:12px;color:#888;">
+              <strong style="color:#1a1a1a;font-size:13px;font-weight:600;display:block;">{sources[:40]}</strong>
+              Sources
+            </td>
+          </tr></table>
+        </td></tr>
+
+        <!-- Listings -->
+        <tr><td style="background:#f7f5f0;padding:16px 24px;
+                        border-left:1px solid #e8e4dc;border-right:1px solid #e8e4dc;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            {cards_html}
+          </table>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="background:#f0ede8;border:1px solid #e8e4dc;border-top:none;
+                        border-radius:0 0 8px 8px;padding:16px 32px;">
+          <table width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="font-size:11px;color:#aaa;line-height:1.6;">
+              J45 Hunter · Watching 12 sources · Every 20 min
+            </td>
+          </tr></table>
+        </td></tr>
+
       </table>
-      <p style="color:#aaa;font-size:12px;margin-top:20px;">
-        J45 Hunter · Watching: 1956–1965 · $2,000–$7,500 · J-45, J-50, Country Western
-      </p>
-    </body></html>
-    """
+    </td></tr>
+  </table>
+</body>
+</html>"""
 
 
 def _build_plain(listings: list[dict]) -> str:
@@ -98,9 +238,9 @@ def _build_plain(listings: list[dict]) -> str:
     for l in listings:
         price_str = f"${l['price']:,.0f}" if l.get("price") else "Price not listed"
         lines.append(f"\n{l['title']}")
-        lines.append(f"Source : {l['source']}")
+        lines.append(f"Source : {l.get('source', '')}")
         lines.append(f"Price  : {price_str}")
         lines.append(f"Score  : {l.get('score', 0)}")
-        lines.append(f"URL    : {l['url']}")
+        lines.append(f"URL    : {l.get('url', '')}")
         lines.append("-" * 40)
     return "\n".join(lines)
