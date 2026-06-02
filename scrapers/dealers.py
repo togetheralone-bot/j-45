@@ -137,6 +137,9 @@ def _fetch_shopify(dealer: dict) -> list[dict]:
                 if not (PRICE_MIN <= price <= PRICE_MAX):
                     continue
 
+                images = p.get("images", [])
+                image_url = images[0].get("src", "") if images else ""
+
                 results.append({
                     "source":      dealer["name"],
                     "id":          f"{dealer['id_prefix']}_{handle[:50]}",
@@ -144,6 +147,7 @@ def _fetch_shopify(dealer: dict) -> list[dict]:
                     "price":       price,
                     "url":         f"{base}/products/{handle}",
                     "description": re.sub(r"<[^>]+>", " ", body).strip()[:500],
+                    "image_url":   image_url,
                 })
 
         except Exception as e:
