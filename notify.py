@@ -7,11 +7,7 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import os
-from config import SMS_EMAIL
-
-NOTIFY_EMAIL = os.environ.get("NOTIFY_EMAIL") or __import__('config').NOTIFY_EMAIL
-GMAIL_SENDER  = os.environ.get("GMAIL_SENDER") or __import__('config').GMAIL_SENDER
+from config import NOTIFY_EMAIL, GMAIL_SENDER, SMS_EMAIL
 
 SOURCE_COLORS = {
     "Reverb":                  "#e05c00",
@@ -34,6 +30,7 @@ SOURCE_COLORS = {
     "Elderly Instruments":     "#555",
     "Cream City Music":        "#555",
     "Guitar Center":           "#c8102e",
+    "The Music Zoo":           "#1a1a1a",
     "The Gear Page":           "#2b5797",
     "Bernunzio Uptown Music":  "#8b6914",
     "Acoustic Vibes Music":    "#1b6ca8",
