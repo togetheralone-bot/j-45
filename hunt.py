@@ -73,8 +73,8 @@ def main(test_mode=False, reset_mode=False, email_test_mode=False):
         return
 
     if email_test_mode:
-        top20 = matched[:20]
-        print(f"\n  📧 EMAIL TEST — Sending top {len(top20)} matches to your inbox...")
+        top20 = matched
+        print(f"\n  📧 EMAIL TEST — Sending top matches to your inbox...")
         print(f"  (Seen listings NOT updated)\n")
         # Treat first 3 as "new", rest as "previous" for preview purposes
         send_alerts(new_listings=top20[:3], all_active=top20)
