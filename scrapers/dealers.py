@@ -131,7 +131,10 @@ def _fetch_shopify(dealer: dict) -> list[dict]:
                     except (ValueError, TypeError):
                         pass
 
-                if price and not (PRICE_MIN <= price <= PRICE_MAX):
+                # price None or 0.00 = sold/unavailable — skip
+                if not price:
+                    continue
+                if not (PRICE_MIN <= price <= PRICE_MAX):
                     continue
 
                 results.append({
@@ -273,7 +276,10 @@ def _fetch_garysguitars() -> list[dict]:
 
                 if not title or len(title) < 5:
                     continue
-                if price and not (PRICE_MIN <= price <= PRICE_MAX):
+                # Require a parseable price — Gary's always shows price on listings
+                if not price:
+                    continue
+                if not (PRICE_MIN <= price <= PRICE_MAX):
                     continue
 
                 results.append({
