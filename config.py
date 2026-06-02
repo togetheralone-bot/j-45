@@ -1,4 +1,3 @@
-import os
 """
 J45 Hunter — Search Configuration
 Edit this file to change what you're hunting for.
@@ -21,9 +20,20 @@ EXCLUDE_TERMS = [
     "1 9/16",
     "1-9/16",
     "reissue",
+    "re-issue",
     "replica",
     "copy",
     "tribute",
+    "custom shop",
+    "historic",
+    "murphy lab",
+    "limited edition",
+    "inspired by",
+    "50s j-45",
+    "60s j-45",
+    "70s j-45",
+    "50s j45",
+    "60s j45",
 ]
 
 # ── Soft Score Boosters (nice to have — raises listing priority) ─
@@ -41,14 +51,14 @@ BOOST_TERMS = [
 ]
 
 # ── Notification (Gmail) ─────────────────────────────────────────
-NOTIFY_EMAIL = "set-via-github-secret"
-GMAIL_SENDER  = "set-via-github-secret"
+NOTIFY_EMAIL = "YOUR_EMAIL@gmail.com"        # where alerts are sent TO
+GMAIL_SENDER  = "YOUR_GMAIL@gmail.com"       # the Gmail account sending alerts
 # GMAIL_APP_PASSWORD is set as a GitHub Actions secret (never put it here)
 
 # ── SMS Notification (T-Mobile email-to-SMS) ─────────────────────
 # Format: 10digitnumber@tmomail.net
 # Leave empty to disable SMS
-SMS_EMAIL = os.environ.get("SMS_EMAIL", "")
+SMS_EMAIL = "YOUR_10_DIGIT_NUMBER@tmomail.net"
 
 # ── Scrape Interval ──────────────────────────────────────────────
 # Controlled by GitHub Actions schedule in .github/workflows/hunt.yml
