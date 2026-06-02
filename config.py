@@ -1,3 +1,4 @@
+import os
 """
 J45 Hunter — Search Configuration
 Edit this file to change what you're hunting for.
