@@ -47,7 +47,7 @@ GMAIL_SENDER  = "set-via-github-secret"
 # ── SMS Notification (T-Mobile email-to-SMS) ─────────────────────
 # Format: 10digitnumber@tmomail.net
 # Leave empty to disable SMS
-SMS_EMAIL = "YOUR_10_DIGIT_NUMBER@tmomail.net"
+SMS_EMAIL = os.environ.get("SMS_EMAIL", "")
 
 # ── Scrape Interval ──────────────────────────────────────────────
 # Controlled by GitHub Actions schedule in .github/workflows/hunt.yml
