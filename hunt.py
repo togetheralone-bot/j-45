@@ -17,6 +17,7 @@ from scrapers import reverb, ebay, gbase, dealers, craigslist, agf, facebook, gu
 from filter import filter_and_score
 from seen import load_seen, save_seen, find_new, mark_seen
 from notify import send_alerts
+import db
 
 SCRAPER_MODULES = [
     ("Reverb",               reverb.fetch),
@@ -73,23 +74,41 @@ def main(test_mode=False, reset_mode=False, email_test_mode=False):
         return
 
     if email_test_mode:
-        top20 = matched
-        print(f"\n  📧 EMAIL TEST — Sending top matches to your inbox...")
+        top20 = matched[:20]
+        print(f"\n  📧 EMAIL TEST — Sending top {len(top20)} matches to your inbox...")
         print(f"  (Seen listings NOT updated)\n")
         # Treat first 3 as "new", rest as "previous" for preview purposes
+        for l in top20:
+            l["archived"] = False
         send_alerts(new_listings=top20[:3], all_active=top20)
         print("\n  ✓ Done. Check your inbox.\n")
         return
 
+    # ── Write to database ────────────────────────────────────────
+    if db.is_configured():
+        db.upsert_listings(matched)
+        archived_ids = db.get_archived_ids()
+        print(f"  Archived listings excluded: {len(archived_ids)}")
+    else:
+        archived_ids = set()
+        print("  [DB] Supabase not configured — skipping DB write")
+
     # ── Find new listings ────────────────────────────────────────
     seen     = load_seen()
     new_ones = find_new(matched, seen)
+    # Exclude archived from triggering new alerts
+    new_ones = [l for l in new_ones if l["id"] not in archived_ids]
     print(f"  New since last run: {len(new_ones)}")
+
+    # Mark archived listings for greyed-out display in email
+    all_active = []
+    for l in matched:
+        l["archived"] = l["id"] in archived_ids
+        all_active.append(l)
 
     if new_ones:
         print(f"\n  🎸 Sending alert for {len(new_ones)} new listing(s)...")
-        # Pass new listings + full active list (up to 20 for previous section)
-        send_alerts(new_listings=new_ones, all_active=matched[:20])
+        send_alerts(new_listings=new_ones, all_active=all_active)
 
     # ── Update seen ──────────────────────────────────────────────
     updated_seen = mark_seen(matched, seen)
