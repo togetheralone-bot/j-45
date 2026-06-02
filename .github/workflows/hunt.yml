@@ -2,21 +2,25 @@ name: J45 Hunter
 
 on:
   schedule:
-    # Runs every 20 minutes, 24/7
     - cron: "*/20 * * * *"
   workflow_dispatch:
     inputs:
-      test_mode:
-        description: "Run in test mode (print matches, no email, no state update)"
+      mode:
+        description: "Run mode: normal, test (print only), email-test (send top 20 to inbox)"
         required: false
-        default: "false"
+        default: "normal"
+        type: choice
+        options:
+          - normal
+          - test
+          - email-test
 
 jobs:
   hunt:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write   # needed to commit seen_listings.json back to repo
+      contents: write
 
     steps:
       - name: Checkout repo
@@ -34,10 +38,6 @@ jobs:
         run: playwright install chromium --with-deps
 
       - name: Restore Facebook session
-        # Writes the FB session from a GitHub secret into the expected file path.
-        # To set this up: run fb_setup.py locally, then:
-        #   cat data/fb_session.json | base64 | pbcopy   (Mac)
-        # Paste that as a secret named FB_SESSION_B64 in GitHub Actions.
         run: |
           mkdir -p data
           if [ -n "${{ secrets.FB_SESSION_B64 }}" ]; then
@@ -53,14 +53,14 @@ jobs:
           EBAY_APP_ID:        ${{ secrets.EBAY_APP_ID }}
           EBAY_CERT_ID:       ${{ secrets.EBAY_CERT_ID }}
         run: |
-          if [ "${{ github.event.inputs.test_mode }}" = "true" ]; then
-            python hunt.py --test
-          else
-            python hunt.py
+          MODE="${{ github.event.inputs.mode || 'normal' }}"
+          if   [ "$MODE" = "test" ];       then python hunt.py --test
+          elif [ "$MODE" = "email-test" ]; then python hunt.py --email-test
+          else                                  python hunt.py
           fi
 
       - name: Commit updated seen listings
-        if: github.event.inputs.test_mode != 'true'
+        if: ${{ (github.event.inputs.mode || 'normal') == 'normal' }}
         run: |
           git config user.name  "j45-hunter[bot]"
           git config user.email "j45-hunter@users.noreply.github.com"
