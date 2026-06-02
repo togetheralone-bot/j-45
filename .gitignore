@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+.DS_Store
+# Note: data/fb_session.json should be committed (or stored as FB_SESSION_B64 secret)

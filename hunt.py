@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+"""
+J45 Hunter — Main entrypoint.
+Run this directly or let GitHub Actions call it on a schedule.
+
+Usage:
+    python hunt.py           # Normal run (alert on new listings only)
+    python hunt.py --test    # Print all current matches, don't send email or update seen
+    python hunt.py --reset   # Clear seen listings (get alerted on everything again)
+"""
+
+import sys
+import time
+from datetime import datetime, timezone
+
+from scrapers import reverb, ebay, gbase, dealers, craigslist, agf, facebook
+from filter import filter_and_score
+from seen import load_seen, save_seen, find_new, mark_seen
+from notify import send_alerts
+
+SCRAPER_MODULES = [
+    ("Reverb",               reverb.fetch),
+    ("eBay",                 ebay.fetch),
+    ("GBase",                gbase.fetch),
+    ("Dealers",              dealers.fetch),
+    ("Craigslist",           craigslist.fetch),
+    ("Facebook Marketplace", facebook.fetch),
+    ("Guitar Forum",         agf.fetch),
+]
+
+
+def main(test_mode=False, reset_mode=False):
+    print(f"\n{'='*50}")
+    print(f"  J45 Hunter  —  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"{'='*50}\n")
+
+    if reset_mode:
+        save_seen(set())
+        print("✓ Seen listings cleared. Next run will alert on everything.")
+        return
+
+    # ── Gather all listings ──────────────────────────────────────
+    all_raw = []
+    for name, fetch_fn in SCRAPER_MODULES:
+        print(f"  Scraping {name}...", end=" ", flush=True)
+        t0 = time.time()
+        try:
+            results = fetch_fn()
+            all_raw.extend(results)
+            print(f"{len(results)} listings ({time.time()-t0:.1f}s)")
+        except Exception as e:
+            print(f"ERROR: {e}")
+
+    print(f"\n  Total raw listings: {len(all_raw)}")
+
+    # ── Filter and score ─────────────────────────────────────────
+    matched = filter_and_score(all_raw)
+    print(f"  Matched your specs: {len(matched)}")
+
+    if test_mode:
+        print("\n── TEST MODE — Top matches ─────────────────────────────\n")
+        for l in matched[:20]:
+            price_str = f"${l['price']:,.0f}" if l.get("price") else "?"
+            print(f"  [{l['score']}★] {l['title']}")
+            print(f"       {l['source']} · {price_str} · {l['url']}")
+            print(f"       Reasons: {', '.join(l.get('match_reasons', []))}\n")
+        return
+
+    # ── Find new listings ────────────────────────────────────────
+    seen      = load_seen()
+    new_ones  = find_new(matched, seen)
+    print(f"  New since last run: {len(new_ones)}")
+
+    if new_ones:
+        print(f"\n  🎸 Sending alert for {len(new_ones)} new listing(s)...")
+        send_alerts(new_ones)
+
+    # ── Update seen ──────────────────────────────────────────────
+    updated_seen = mark_seen(matched, seen)
+    save_seen(updated_seen)
+    print(f"\n  ✓ Done. Tracking {len(updated_seen)} seen listing IDs.\n")
+
+
+if __name__ == "__main__":
+    test_mode  = "--test"  in sys.argv
+    reset_mode = "--reset" in sys.argv
+    main(test_mode=test_mode, reset_mode=reset_mode)

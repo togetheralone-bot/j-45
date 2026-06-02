@@ -1,0 +1,69 @@
+name: J45 Hunter
+
+on:
+  schedule:
+    # Runs every 20 minutes, 24/7
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: "Run in test mode (print matches, no email, no state update)"
+        required: false
+        default: "false"
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # needed to commit seen_listings.json back to repo
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright browser
+        run: playwright install chromium --with-deps
+
+      - name: Restore Facebook session
+        # Writes the FB session from a GitHub secret into the expected file path.
+        # To set this up: run fb_setup.py locally, then:
+        #   cat data/fb_session.json | base64 | pbcopy   (Mac)
+        # Paste that as a secret named FB_SESSION_B64 in GitHub Actions.
+        run: |
+          mkdir -p data
+          if [ -n "${{ secrets.FB_SESSION_B64 }}" ]; then
+            echo "${{ secrets.FB_SESSION_B64 }}" | base64 -d > data/fb_session.json
+            echo "Facebook session restored."
+          else
+            echo "No FB_SESSION_B64 secret set — Facebook Marketplace will be skipped."
+          fi
+
+      - name: Run hunter
+        env:
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EBAY_APP_ID:        ${{ secrets.EBAY_APP_ID }}
+          EBAY_CERT_ID:       ${{ secrets.EBAY_CERT_ID }}
+        run: |
+          if [ "${{ github.event.inputs.test_mode }}" = "true" ]; then
+            python hunt.py --test
+          else
+            python hunt.py
+          fi
+
+      - name: Commit updated seen listings
+        if: github.event.inputs.test_mode != 'true'
+        run: |
+          git config user.name  "j45-hunter[bot]"
+          git config user.email "j45-hunter@users.noreply.github.com"
+          git add data/seen_listings.json
+          git diff --staged --quiet || git commit -m "chore: update seen listings [skip ci]"
+          git push
