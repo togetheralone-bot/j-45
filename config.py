@@ -1,3 +1,5 @@
+import os
+
 """
 J45 Hunter — Search Configuration
 Edit this file to change what you're hunting for.
@@ -51,14 +53,12 @@ BOOST_TERMS = [
 ]
 
 # ── Notification (Gmail) ─────────────────────────────────────────
-NOTIFY_EMAIL = "YOUR_EMAIL@gmail.com"        # where alerts are sent TO
-GMAIL_SENDER  = "YOUR_GMAIL@gmail.com"       # the Gmail account sending alerts
+NOTIFY_EMAIL = os.environ.get("NOTIFY_EMAIL", "")
+GMAIL_SENDER  = os.environ.get("GMAIL_SENDER",  "")
 # GMAIL_APP_PASSWORD is set as a GitHub Actions secret (never put it here)
 
 # ── SMS Notification (T-Mobile email-to-SMS) ─────────────────────
-# Format: 10digitnumber@tmomail.net
-# Leave empty to disable SMS
-SMS_EMAIL = "YOUR_10_DIGIT_NUMBER@tmomail.net"
+SMS_EMAIL = os.environ.get("SMS_EMAIL", "")
 
 # ── Scrape Interval ──────────────────────────────────────────────
 # Controlled by GitHub Actions schedule in .github/workflows/hunt.yml
