@@ -45,11 +45,6 @@ SHOPIFY_DEALERS = [
         "id_prefix": "trcrandall",
     },
     {
-        "name":      "Austin Vintage Guitars",
-        "base":      "https://www.austinvintageguitars.com",
-        "id_prefix": "austinvintage",
-    },
-    {
         "name":      "Dave's Guitar Shop",
         "base":      "https://www.davesguitar.com",
         "id_prefix": "daves",
