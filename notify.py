@@ -32,6 +32,14 @@ SOURCE_COLORS = {
     "Guitar Center":            "#c8102e",
     "The Gear Page":            "#2b5797",
     "Bernunzio Uptown Music":   "#8b6914",
+    "Acoustic Vibes Music":     "#1b6ca8",
+    "Matt Umanov Guitars":      "#555",
+    "Thunder Road Guitars":     "#555",
+    "Dream Guitars":            "#2e7d32",
+    "Rumble Seat Music":        "#7b3f9e",
+    "Fretted Americana":        "#8b4513",
+    "Austin Vintage Guitars":   "#bf4300",
+    "Rumble Seat Music":        "#7b3f9e",
 }
 
 
