@@ -25,11 +25,6 @@ HEADERS = {
 # All expose /products.json — structured, reliable, no HTML parsing.
 SHOPIFY_DEALERS = [
     {
-        "name":      "Carter Vintage",
-        "base":      "https://cartervintage.com",
-        "id_prefix": "carter",
-    },
-    {
         "name":      "Emerald City Guitars",
         "base":      "https://emeraldcityguitars.com",
         "id_prefix": "emerald",
@@ -165,7 +160,7 @@ def _fetch_gruhn() -> list[dict]:
     ]
     for url in urls:
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=20)
+            resp = requests.get(url, headers=HEADERS, timeout=20, verify=False)
             resp.raise_for_status()
             soup = BeautifulSoup(resp.text, "html.parser")
 
