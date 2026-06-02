@@ -13,7 +13,7 @@ import sys
 import time
 from datetime import datetime, timezone
 
-from scrapers import reverb, ebay, gbase, dealers, craigslist, agf, facebook
+from scrapers import reverb, ebay, gbase, dealers, craigslist, agf, facebook, guitarcenter, gearpage, bernunzio
 from filter import filter_and_score
 from seen import load_seen, save_seen, find_new, mark_seen
 from notify import send_alerts
@@ -26,6 +26,9 @@ SCRAPER_MODULES = [
     ("Craigslist",           craigslist.fetch),
     ("Facebook Marketplace", facebook.fetch),
     ("Guitar Forum",         agf.fetch),
+    ("Guitar Center",        guitarcenter.fetch),
+    ("The Gear Page",        gearpage.fetch),
+    ("Bernunzio",            bernunzio.fetch),
 ]
 
 
