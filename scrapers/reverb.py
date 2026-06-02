@@ -1,5 +1,10 @@
 """
 Reverb scraper — uses the public Reverb API (no auth required).
+
+Two search strategies:
+  1. Keyword search across all of Reverb
+  2. Direct shop queries for dealers we know are on Reverb
+     (catches listings from Wix/custom sites that also sell on Reverb)
 """
 
 import requests
@@ -12,51 +17,92 @@ HEADERS = {
     "Accept-Version": "3.0",
 }
 
+# Dealers whose own sites are Wix/JS-rendered but who also sell on Reverb.
+# We query their Reverb shops directly to catch listings their site hides from scrapers.
+REVERB_SHOPS = [
+    "austin-vintage-guitars",
+    "rumble-seat-music",
+]
+
+KEYWORD_QUERIES = [
+    "gibson j-45 vintage",
+    "gibson j-50 vintage",
+    "gibson country western vintage",
+]
+
 
 def fetch() -> list[dict]:
     results = []
 
-    for model in ["gibson j-45", "gibson j-50", "gibson country western"]:
+    # 1. Broad keyword searches
+    for query in KEYWORD_QUERIES:
         params = {
-            "query": f"{model} vintage",
+            "query":     query,
             "condition": "used",
             "price_min": PRICE_MIN,
             "price_max": PRICE_MAX,
-            "per_page": 50,
+            "per_page":  50,
         }
-
         try:
             resp = requests.get(REVERB_API, headers=HEADERS, params=params, timeout=15)
             resp.raise_for_status()
-            data = resp.json()
-
-            for listing in data.get("listings", []):
-                # Grab first photo URL if available
-                photos = listing.get("photos", [])
-                image_url = ""
-                if photos:
-                    # photos is a list of dicts with _links.large_crop.href
-                    try:
-                        image_url = photos[0].get("_links", {}).get("large_crop", {}).get("href", "")
-                        if not image_url:
-                            image_url = photos[0].get("_links", {}).get("full", {}).get("href", "")
-                    except (AttributeError, IndexError):
-                        pass
-
-                results.append({
-                    "source":      "Reverb",
-                    "id":          f"reverb_{listing.get('id')}",
-                    "title":       listing.get("title", ""),
-                    "price":       _parse_price(listing.get("price", {}).get("amount")),
-                    "url":         listing.get("_links", {}).get("web", {}).get("href", ""),
-                    "description": listing.get("description", ""),
-                    "image_url":   image_url,
-                })
-
+            for listing in resp.json().get("listings", []):
+                results.append(_parse(listing, "Reverb"))
         except Exception as e:
-            print(f"[Reverb] Error fetching '{model}': {e}")
+            print(f"[Reverb] Error on '{query}': {e}")
 
-    return results
+    # 2. Direct shop queries for Wix dealers on Reverb
+    for shop_slug in REVERB_SHOPS:
+        shop_url = f"https://api.reverb.com/api/listings?shop_slug={shop_slug}&per_page=50"
+        try:
+            resp = requests.get(shop_url, headers=HEADERS, timeout=15)
+            resp.raise_for_status()
+            shop_name = _shop_display_name(shop_slug)
+            for listing in resp.json().get("listings", []):
+                results.append(_parse(listing, shop_name))
+        except Exception as e:
+            print(f"[Reverb/{shop_slug}] Error: {e}")
+
+    # Dedupe by ID
+    seen, deduped = set(), []
+    for r in results:
+        if r["id"] not in seen:
+            seen.add(r["id"])
+            deduped.append(r)
+
+    print(f"[Reverb] Found {len(deduped)} listings")
+    return deduped
+
+
+def _parse(listing: dict, source: str) -> dict:
+    photos    = listing.get("photos", [])
+    image_url = ""
+    if photos:
+        try:
+            image_url = (
+                photos[0].get("_links", {}).get("large_crop", {}).get("href", "") or
+                photos[0].get("_links", {}).get("full", {}).get("href", "")
+            )
+        except (AttributeError, IndexError):
+            pass
+
+    return {
+        "source":      source,
+        "id":          f"reverb_{listing.get('id')}",
+        "title":       listing.get("title", ""),
+        "price":       _parse_price(listing.get("price", {}).get("amount")),
+        "url":         listing.get("_links", {}).get("web", {}).get("href", ""),
+        "description": listing.get("description", ""),
+        "image_url":   image_url,
+    }
+
+
+def _shop_display_name(slug: str) -> str:
+    names = {
+        "austin-vintage-guitars": "Austin Vintage Guitars",
+        "rumble-seat-music":      "Rumble Seat Music",
+    }
+    return names.get(slug, slug.replace("-", " ").title())
 
 
 def _parse_price(val) -> float | None:
