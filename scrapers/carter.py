@@ -15,9 +15,11 @@ BASE_URL = "https://cartervintage.com"
 
 # Their acoustic category — sorted newest first so we catch new arrivals
 PAGES = [
-    f"{BASE_URL}/shop?category=ACOUSTIC&sort=LISTING_TIME_DESC",
-    f"{BASE_URL}/shop?category=ACOUSTIC&sort=LISTING_TIME_DESC&page=2",
-    f"{BASE_URL}/shop?category=ACOUSTIC&sort=LISTING_TIME_DESC&page=3",
+    f"{BASE_URL}/shop?sort=LISTING_TIME_DESC",
+    f"{BASE_URL}/shop?sort=LISTING_TIME_DESC&page=2",
+    f"{BASE_URL}/shop?sort=LISTING_TIME_DESC&page=3",
+    f"{BASE_URL}/shop?sort=LISTING_TIME_DESC&page=4",
+    f"{BASE_URL}/shop?sort=LISTING_TIME_DESC&page=5",
 ]
 
 HEADERS = {
