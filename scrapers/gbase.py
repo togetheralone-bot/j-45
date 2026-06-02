@@ -38,35 +38,34 @@ def fetch() -> list[dict]:
             resp.raise_for_status()
             soup = BeautifulSoup(resp.text, "html.parser")
 
-            # GBase gear listing cards
             cards = (
                 soup.select("div.gear-item") or
                 soup.select("div.item") or
                 soup.select("li.result") or
                 soup.select("[class*='gear-item']") or
                 soup.select("[class*='listing']") or
-                # Fallback: any anchor linking to /gear/ pages
                 [a for a in soup.select("a[href*='/gear/']") if a.get_text(strip=True)]
             )
 
             for card in cards:
-                # If card is just an <a> tag from fallback, handle it directly
                 if card.name == "a":
-                    title    = card.get_text(strip=True)
+                    raw_text = card.get_text(strip=True)
                     href     = card.get("href", "")
                     full_url = href if href.startswith("http") else BASE_URL + href
-                    price    = None
-                    desc     = title
+                    price    = _parse_price(raw_text)
+                    title    = _clean_title(raw_text)
+                    desc     = raw_text
                 else:
                     title_el = card.select_one("h2, h3, .title, [class*='title'], a")
                     price_el = card.select_one(".price, [class*='price']")
                     link_el  = card.select_one("a[href*='/gear/']")
 
-                    title    = title_el.get_text(strip=True) if title_el else ""
-                    price    = _parse_price(price_el.get_text(strip=True) if price_el else "")
+                    raw_text = card.get_text(separator=" ", strip=True)
+                    title    = _clean_title(title_el.get_text(strip=True) if title_el else raw_text)
+                    price    = _parse_price(price_el.get_text(strip=True) if price_el else raw_text)
                     href     = link_el["href"] if link_el else ""
                     full_url = href if href.startswith("http") else BASE_URL + href
-                    desc     = card.get_text(separator=" ", strip=True)[:500]
+                    desc     = raw_text[:500]
 
                 if not title or len(title) < 5:
                     continue
@@ -80,12 +79,12 @@ def fetch() -> list[dict]:
                     "price":       price,
                     "url":         full_url,
                     "description": desc,
+                    "image_url":   "",
                 })
 
         except Exception as e:
             print(f"[GBase] Error fetching '{path}': {e}")
 
-    # Dedupe
     seen, deduped = set(), []
     for r in results:
         if r["id"] not in seen:
@@ -96,8 +95,50 @@ def fetch() -> list[dict]:
     return deduped
 
 
+def _clean_title(text: str) -> str:
+    """Strip the dealer name and price from GBase concatenated title strings.
+
+    GBase text format: "1964 Gibson J-50 NaturalSouthside Guitars$4,850"
+    Target output:     "1964 Gibson J-50 Natural"
+
+    The guitar descriptor ends with a known set of finish/feature words.
+    Everything after the last known descriptor word is the dealer name run-on.
+    """
+    # Cut at the dollar sign first
+    price_match = re.search(r"\$[\d,]+", text)
+    before_price = text[:price_match.start()].strip() if price_match else text.strip()
+
+    # Known words that legitimately end a guitar title description
+    # After any of these, the rest is the dealer name concatenated on
+    END_WORDS = [
+        "sunburst", "natural", "burst", "cherry", "black", "blonde",
+        "adj", "adv", "original", "case", "ohsc", "refret", "neck",
+        "top", "back", "sides", "bound", "binding", "inlay",
+    ]
+
+    best_cut = before_price
+    best_pos = 0
+    lower    = before_price.lower()
+
+    for word in END_WORDS:
+        idx = lower.rfind(word)
+        if idx != -1:
+            end = idx + len(word)
+            if end > best_pos:
+                best_pos = end
+                best_cut = before_price[:end].strip()
+
+    # Only use the cut if it's a reasonable portion of the original
+    if best_pos > 8 and len(best_cut) >= 10:
+        return best_cut
+
+    # Fallback: cut at first run-on capital (no space before capital mid-string)
+    fallback = re.sub(r"([a-z])([A-Z][a-z])", r"\1", before_price).strip()
+    return fallback if len(fallback) >= 10 else before_price
+
+
 def _parse_price(text: str) -> float | None:
-    match = re.search(r"\$?([\d,]+)", text.replace("$", "").strip())
+    match = re.search(r"\$([\d,]+)", text)
     if match:
         try:
             v = float(match.group(1).replace(",", ""))
