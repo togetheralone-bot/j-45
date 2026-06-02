@@ -195,46 +195,71 @@ def _fetch_gruhn() -> list[dict]:
 
 
 # ── Retrofret ─────────────────────────────────────────────────────────────────
-# Classic ASP site. Search results in a table layout.
+# Now on Shopify — use /products.json for reliable data.
+# Also scrape their era-filtered collection pages directly.
 
 def _fetch_retrofret() -> list[dict]:
     results = []
-    urls = [
-        "https://retrofret.com/results.asp?Find=gibson+j-45&Category=Acoustics",
-        "https://retrofret.com/results.asp?Find=gibson+j-50&Category=Acoustics",
-        "https://retrofret.com/results.asp?Find=gibson+country+western&Category=Acoustics",
-    ]
-    for url in urls:
+    base = "https://retrofret.com"
+    seen = set()
+
+    # Pull all products via Shopify JSON API
+    for page in range(1, 6):
+        url = f"{base}/products.json?limit=250&page={page}"
         try:
             resp = requests.get(url, headers=HEADERS, timeout=20)
+            if resp.status_code == 404:
+                break
             resp.raise_for_status()
-            soup = BeautifulSoup(resp.text, "html.parser")
+            products = resp.json().get("products", [])
+            if not products:
+                break
 
-            # Retrofret renders results as table rows with instrument links
-            for a in soup.select("a[href*='instrument.asp']"):
-                title = a.get_text(strip=True)
-                href  = a["href"]
-                full_url = href if href.startswith("http") else f"https://retrofret.com/{href.lstrip('/')}"
+            for p in products:
+                title  = p.get("title", "")
+                handle = p.get("handle", "")
+                body   = p.get("body_html", "")
+                blob   = f"{title} {body}".lower()
 
-                # Try to find price in parent row
-                row   = a.find_parent("tr") or a.find_parent("td")
-                price = _parse_price(row.get_text() if row else "")
-
-                if not title or len(title) < 5:
+                if "gibson" not in blob:
                     continue
-                if price and not (PRICE_MIN <= price <= PRICE_MAX):
+                if not any(m in blob for m in ["j-45", "j45", "j-50", "j50", "country western"]):
                     continue
+                if handle in seen:
+                    continue
+                seen.add(handle)
+
+                price = None
+                for variant in p.get("variants", []):
+                    try:
+                        v = float(variant.get("price", 0))
+                        if v > 0:
+                            price = v
+                            break
+                    except (ValueError, TypeError):
+                        pass
+
+                if not price:
+                    continue
+                if not (PRICE_MIN <= price <= PRICE_MAX):
+                    continue
+
+                images    = p.get("images", [])
+                image_url = images[0].get("src", "") if images else ""
 
                 results.append({
                     "source":      "Retrofret",
-                    "id":          f"retrofret_{_slug(full_url)}",
+                    "id":          f"retrofret_{handle[:50]}",
                     "title":       title,
                     "price":       price,
-                    "url":         full_url,
-                    "description": row.get_text(separator=" ", strip=True)[:400] if row else "",
+                    "url":         f"{base}/products/{handle}",
+                    "description": re.sub(r"<[^>]+>", " ", body).strip()[:500],
+                    "image_url":   image_url,
                 })
+
         except Exception as e:
-            print(f"[Retrofret] Error: {e}")
+            print(f"[Retrofret] Error page {page}: {e}")
+            break
 
     print(f"[Retrofret] Found {len(results)} listings")
     return results
