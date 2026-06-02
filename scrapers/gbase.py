@@ -1,6 +1,6 @@
 """
 GBase scraper — scrapes gbase.com search results.
-No API available; uses BeautifulSoup to parse listings.
+GBase uses a specific search URL structure and renders listings in a consistent grid.
 """
 
 import re
@@ -10,18 +10,21 @@ from config import PRICE_MIN, PRICE_MAX
 
 BASE_URL = "https://www.gbase.com"
 
+# GBase search URLs — verified structure as of 2025
 SEARCHES = [
-    "/guitars/acoustic-guitars?q=gibson+j-45",
-    "/guitars/acoustic-guitars?q=gibson+j-50",
-    "/guitars/acoustic-guitars?q=gibson+country+western",
+    "/search?q=gibson+j-45&t=acoustic",
+    "/search?q=gibson+j-50&t=acoustic",
+    "/search?q=gibson+country+western&t=acoustic",
 ]
 
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    )
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
 }
 
 
@@ -35,12 +38,19 @@ def fetch() -> list[dict]:
             resp.raise_for_status()
             soup = BeautifulSoup(resp.text, "html.parser")
 
-            # GBase listing cards — class names may need updating if site redesigns
-            cards = soup.select(".listing-item, .instrument-item, [class*='listing']")
+            # GBase renders gear cards with these selectors
+            cards = (
+                soup.select("div.gear-card") or
+                soup.select("div.search-result-item") or
+                soup.select("div.listing") or
+                soup.select("li.gear-item") or
+                soup.select("[class*='gear-card']") or
+                soup.select("[class*='result-item']")
+            )
 
             for card in cards:
-                title_el = card.select_one("h2, h3, .title, [class*='title']")
-                price_el = card.select_one(".price, [class*='price']")
+                title_el = card.select_one("h2, h3, .gear-title, .title, [class*='title']")
+                price_el = card.select_one(".price, .gear-price, [class*='price']")
                 link_el  = card.select_one("a[href]")
 
                 title = title_el.get_text(strip=True) if title_el else ""
@@ -50,7 +60,6 @@ def fetch() -> list[dict]:
 
                 if not title:
                     continue
-
                 if price and not (PRICE_MIN <= price <= PRICE_MAX):
                     continue
 
@@ -66,6 +75,7 @@ def fetch() -> list[dict]:
         except Exception as e:
             print(f"[GBase] Error fetching '{path}': {e}")
 
+    print(f"[GBase] Found {len(results)} listings")
     return results
 
 
