@@ -22,12 +22,6 @@ EXCLUDE_TERMS = [
     "reissue",
     "replica",
     "copy",
-    "custom",
-    "custom shop",
-    "japan",
-    "made in japan",
-    "mij",
-    "banner",
     "tribute",
 ]
 
@@ -50,6 +44,11 @@ NOTIFY_EMAIL = "danielswilkinson@gmail.com"        # where alerts are sent TO
 GMAIL_SENDER  = "togetheralone.j45@gmail.com"       # the Gmail account sending alerts
 # GMAIL_APP_PASSWORD is set as a GitHub Actions secret (never put it here)
 
+# ── SMS Notification (T-Mobile email-to-SMS) ─────────────────────
+# Format: 10digitnumber@tmomail.net
+# Leave empty to disable SMS
+SMS_EMAIL = "8312959346@tmomail.net"
+
 # ── Scrape Interval ──────────────────────────────────────────────
 # Controlled by GitHub Actions schedule in .github/workflows/hunt.yml
-# Default: every 20 minutes
+# Default: every 5 minutes
