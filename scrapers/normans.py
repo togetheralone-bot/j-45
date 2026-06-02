@@ -14,9 +14,11 @@ from config import PRICE_MIN, PRICE_MAX
 BASE_URL = "https://normansrareguitars.com"
 
 PAGES = [
-    f"{BASE_URL}/shop?category=ACOUSTIC&sort=LISTING_TIME_DESC",
-    f"{BASE_URL}/shop?category=ACOUSTIC&sort=LISTING_TIME_DESC&page=2",
-    f"{BASE_URL}/shop?category=ACOUSTIC&sort=LISTING_TIME_DESC&page=3",
+    f"{BASE_URL}/shop?sort=LISTING_TIME_DESC",
+    f"{BASE_URL}/shop?sort=LISTING_TIME_DESC&page=2",
+    f"{BASE_URL}/shop?sort=LISTING_TIME_DESC&page=3",
+    f"{BASE_URL}/shop?sort=LISTING_TIME_DESC&page=4",
+    f"{BASE_URL}/shop?sort=LISTING_TIME_DESC&page=5",
 ]
 
 HEADERS = {
