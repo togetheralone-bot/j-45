@@ -7,9 +7,9 @@ A listing passes if it matches ANY instrument's criteria.
 import re
 from config import INSTRUMENTS, BOOST_TERMS
 
-# Parts/non-whole-guitar exclusions
+# Parts/non-whole-guitar exclusions — checked against title+description
 PARTS_TERMS = [
-    # Generic
+    # Explicit parts phrases
     "body only", "neck only", "body & neck", "body and neck",
     "parts guitar", "parts only", "project guitar", "parts/project",
     "for parts", "as-is parts", "body blank",
@@ -18,7 +18,7 @@ PARTS_TERMS = [
     "tuning machine", "tuning peg",
     "tremolo arm", "tremolo only",
     "nut only", "fretboard only", "fingerboard only",
-    # Instrument-specific body/neck combos
+    # Instrument-specific body/neck
     "stratocaster body", "strat body",
     "stratocaster neck", "strat neck",
     "jazzmaster body", "jazzmaster neck",
@@ -26,6 +26,13 @@ PARTS_TERMS = [
     "j-45 body", "j45 body",
     "j-45 neck", "j45 neck",
     "guitar body", "guitar neck",
+]
+
+# These are checked against the TITLE only (too risky in description)
+TITLE_PARTS_TERMS = [
+    " body ", "- body", "body -", "(body)",
+    " neck ", "- neck", "neck -", "(neck)",
+    "project body", "refinish body",
 ]
 
 
@@ -50,11 +57,19 @@ def filter_and_score(listings: list[dict]) -> list[dict]:
 
 
 def _evaluate(listing: dict) -> dict | None:
-    blob = f"{listing.get('title', '')} {listing.get('description', '')}".lower()
+    title = listing.get("title", "").lower()
+    desc  = listing.get("description", "").lower()
+    blob  = f"{title} {desc}"
 
-    # Global parts filter — applied before any instrument matching
+    # Full blob parts check
     for term in PARTS_TERMS:
         if term in blob:
+            return None
+
+    # Title-only parts check (catches "1964 Strat Body" etc.)
+    title_padded = f" {title} "
+    for term in TITLE_PARTS_TERMS:
+        if term in title_padded:
             return None
 
     for inst in INSTRUMENTS:
