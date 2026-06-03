@@ -25,9 +25,19 @@ REVERB_SHOPS = [
 ]
 
 KEYWORD_QUERIES = [
+    # Gibson (original)
     "gibson j-45 vintage",
-    "gibson j-50 vintage",
-    "gibson country western vintage",
+    # Fender
+    "fender jazzmaster vintage",
+    "fender jaguar vintage",
+    "fender stratocaster vintage 1962",
+    "fender stratocaster vintage 1963",
+    "fender stratocaster vintage 1964",
+    "fender stratocaster vintage 1965",
+    "fender stratocaster vintage 1966",
+    "fender stratocaster vintage 1967",
+    "fender stratocaster vintage 1968",
+    "fender stratocaster vintage 1969",
 ]
 
 
