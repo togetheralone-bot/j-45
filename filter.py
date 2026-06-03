@@ -7,6 +7,27 @@ A listing passes if it matches ANY instrument's criteria.
 import re
 from config import INSTRUMENTS, BOOST_TERMS
 
+# Parts/non-whole-guitar exclusions
+PARTS_TERMS = [
+    # Generic
+    "body only", "neck only", "body & neck", "body and neck",
+    "parts guitar", "parts only", "project guitar", "parts/project",
+    "for parts", "as-is parts", "body blank",
+    "loaded body", "unloaded body",
+    "neck pocket", "pickguard only",
+    "tuning machine", "tuning peg",
+    "tremolo arm", "tremolo only",
+    "nut only", "fretboard only", "fingerboard only",
+    # Instrument-specific body/neck combos
+    "stratocaster body", "strat body",
+    "stratocaster neck", "strat neck",
+    "jazzmaster body", "jazzmaster neck",
+    "jaguar body", "jaguar neck",
+    "j-45 body", "j45 body",
+    "j-45 neck", "j45 neck",
+    "guitar body", "guitar neck",
+]
+
 
 def filter_and_score(listings: list[dict]) -> list[dict]:
     passed = []
@@ -30,6 +51,11 @@ def filter_and_score(listings: list[dict]) -> list[dict]:
 
 def _evaluate(listing: dict) -> dict | None:
     blob = f"{listing.get('title', '')} {listing.get('description', '')}".lower()
+
+    # Global parts filter — applied before any instrument matching
+    for term in PARTS_TERMS:
+        if term in blob:
+            return None
 
     for inst in INSTRUMENTS:
         result = _match_instrument(listing, blob, inst)
