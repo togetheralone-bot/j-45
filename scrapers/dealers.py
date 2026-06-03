@@ -108,9 +108,10 @@ def _fetch_shopify(dealer: dict) -> list[dict]:
                 body   = p.get("body_html", "")
                 blob   = f"{title} {body}".lower()
 
-                if "gibson" not in blob:
-                    continue
-                if not any(m in blob for m in ["j-45", "j45", "j-50", "j50", "country western"]):
+                # Accept Gibson acoustics OR Fender Jazzmaster/Jaguar/Stratocaster
+                is_gibson = "gibson" in blob and any(m in blob for m in ["j-45", "j45", "j-50", "j50", "country western"])
+                is_fender = "fender" in blob and any(m in blob for m in ["jazzmaster", "jaguar", "stratocaster"])
+                if not (is_gibson or is_fender):
                     continue
                 if handle in seen:
                     continue
@@ -159,9 +160,14 @@ def _fetch_shopify(dealer: dict) -> list[dict]:
 def _fetch_gruhn() -> list[dict]:
     results = []
     urls = [
+        # Gibson (original)
         "https://www.gruhn.com/shop/acoustic-guitars/?search=gibson+j-45",
         "https://www.gruhn.com/shop/acoustic-guitars/?search=gibson+j-50",
         "https://www.gruhn.com/shop/acoustic-guitars/?search=gibson+country+western",
+        # Fender
+        "https://www.gruhn.com/shop/electric-guitars/?search=fender+jazzmaster",
+        "https://www.gruhn.com/shop/electric-guitars/?search=fender+jaguar",
+        "https://www.gruhn.com/shop/electric-guitars/?search=fender+stratocaster",
     ]
     for url in urls:
         try:
@@ -279,7 +285,10 @@ def _fetch_garysguitars() -> list[dict]:
     # Gary's has a specific Gibson acoustics category — much more reliable
     # than a keyword search on his custom CMS
     urls = [
+        # Gibson (original)
         "https://www.garysguitars.com/vintage-gibson-acoustic-guitars",
+        # Fender
+        "https://www.garysguitars.com/vintage-fender-electric-guitars",
     ]
     for url in urls:
         try:
