@@ -1,23 +1,14 @@
 """
 Filter and scoring engine.
-Applies hard exclusions, year/price checks, and a boost score.
+Checks each listing against all instruments in config.INSTRUMENTS.
+A listing passes if it matches ANY instrument's criteria.
 """
 
 import re
-from config import (
-    TARGET_MODELS,
-    YEAR_MIN, YEAR_MAX,
-    PRICE_MIN, PRICE_MAX,
-    EXCLUDE_TERMS,
-    BOOST_TERMS,
-)
+from config import INSTRUMENTS, BOOST_TERMS
 
 
 def filter_and_score(listings: list[dict]) -> list[dict]:
-    """
-    Returns filtered listings sorted by score (descending).
-    Each listing gets a `score` field and a `match_reason` list.
-    """
     passed = []
 
     for listing in listings:
@@ -33,7 +24,6 @@ def filter_and_score(listings: list[dict]) -> list[dict]:
             seen.add(l["id"])
             deduped.append(l)
 
-    # Sort: highest score first, then by price ascending
     deduped.sort(key=lambda x: (-x["score"], x["price"] or 9999999))
     return deduped
 
@@ -41,57 +31,53 @@ def filter_and_score(listings: list[dict]) -> list[dict]:
 def _evaluate(listing: dict) -> dict | None:
     blob = f"{listing.get('title', '')} {listing.get('description', '')}".lower()
 
-    # ── 1. Must mention a target model ──────────────────────────
-    if not any(model in blob for model in TARGET_MODELS):
+    for inst in INSTRUMENTS:
+        result = _match_instrument(listing, blob, inst)
+        if result:
+            return result
+
+    return None
+
+
+def _match_instrument(listing: dict, blob: str, inst: dict) -> dict | None:
+    # 1. Must mention the brand
+    if inst["brand"] not in blob:
         return None
 
-    # ── 2. Must mention "gibson" ─────────────────────────────────
-    if "gibson" not in blob:
+    # 2. Must mention a target model
+    if not any(m in blob for m in inst["models"]):
         return None
 
-    # ── 3. Hard exclusions ───────────────────────────────────────
-    for term in EXCLUDE_TERMS:
+    # 3. Hard exclusions
+    for term in inst["exclude_terms"]:
         if term.lower() in blob:
             return None
 
-    # ── 4. Year check (strict) ───────────────────────────────────
+    # 4. Year check — a year in range must be explicitly mentioned
     years_found = re.findall(r"\b(19[3-9]\d)\b", blob)
     if not years_found:
-        return None  # No vintage year mentioned at all — skip it
-    in_range = [y for y in years_found if YEAR_MIN <= int(y) <= YEAR_MAX]
+        return None
+    in_range = [y for y in years_found if inst["year_min"] <= int(y) <= inst["year_max"]]
     if not in_range:
-        return None  # Years mentioned but none in 1956–1965 — skip it
+        return None
 
-
-    # ── 5. Price check ───────────────────────────────────────────
+    # 5. Price check
     price = listing.get("price")
     if price is not None:
-        if not (PRICE_MIN <= price <= PRICE_MAX):
+        if not (inst["price_min"] <= price <= inst["price_max"]):
             return None
 
-    # ── 6. Boost scoring ─────────────────────────────────────────
-    score = 0
-    match_reasons = []
-
-    # Year in range is the baseline signal
-    score += 3
-    match_reasons.append(f"year: {', '.join(sorted(set(in_range)))}")
-
-    # J-45 specifically gets a boost — it's the primary target
-    if "j-45" in blob or "j45" in blob:
-        score += 2
-        match_reasons.append("J-45")
-
-    # Country Western gets a boost too — rarer and highly desirable
-    if "country western" in blob:
-        score += 1
-        match_reasons.append("Country Western")
+    # 6. Boost scoring
+    score = 3  # base for year match
+    match_reasons = [f"year: {', '.join(set(in_range))}"]
 
     for term in BOOST_TERMS:
         if term.lower() in blob:
             score += 1
             match_reasons.append(term)
 
+    listing = dict(listing)  # don't mutate original
     listing["score"]         = score
     listing["match_reasons"] = match_reasons
+    listing["instrument"]    = inst["name"]
     return listing
