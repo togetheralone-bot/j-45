@@ -71,9 +71,9 @@ def _fetch_shopify(dealer: dict) -> list[dict]:
                 body   = p.get("body_html", "")
                 blob   = f"{title} {body}".lower()
 
-                if "gibson" not in blob:
-                    continue
-                if not any(m in blob for m in ["j-45", "j45", "j-50", "j50", "country western"]):
+                is_gibson = "gibson" in blob and any(m in blob for m in ["j-45", "j45", "j-50", "j50", "country western"])
+                is_fender = "fender" in blob and any(m in blob for m in ["jazzmaster", "jaguar", "stratocaster"])
+                if not (is_gibson or is_fender):
                     continue
                 if handle in seen:
                     continue
@@ -119,9 +119,14 @@ def _fetch_thunder_road() -> list[dict]:
     """Thunder Road Guitars — WordPress with custom store."""
     results = []
     urls = [
+        # Gibson (original)
         "https://thunderroadguitars.com/store?s=gibson+j-45",
         "https://thunderroadguitars.com/store?s=gibson+j-50",
         "https://thunderroadguitars.com/store?s=gibson+country+western",
+        # Fender
+        "https://thunderroadguitars.com/store?s=fender+jazzmaster",
+        "https://thunderroadguitars.com/store?s=fender+jaguar",
+        "https://thunderroadguitars.com/store?s=fender+stratocaster",
     ]
     for url in urls:
         try:
@@ -233,8 +238,13 @@ def _fetch_rumble_seat() -> list[dict]:
     """
     results = []
     urls = [
+        # Gibson (original)
         "https://www.rumbleseatmusic.com/shop?q=gibson+j-45",
         "https://www.rumbleseatmusic.com/shop?q=gibson+j-50",
+        # Fender
+        "https://www.rumbleseatmusic.com/shop?q=fender+jazzmaster",
+        "https://www.rumbleseatmusic.com/shop?q=fender+jaguar",
+        "https://www.rumbleseatmusic.com/shop?q=fender+stratocaster",
     ]
     for url in urls:
         try:
@@ -277,10 +287,15 @@ def _fetch_fretted_americana() -> list[dict]:
     """Fretted Americana — vintage specialist, custom site."""
     results = []
     urls = [
+        # Gibson (original)
         "https://www.frettedamericana.com/guitars/acoustic/?s=gibson+j-45",
         "https://www.frettedamericana.com/guitars/acoustic/?s=gibson+j-50",
         "https://www.frettedamericana.com/guitars/acoustic/?s=gibson+country+western",
-        # Also try their general inventory page
+        # Fender
+        "https://www.frettedamericana.com/guitars/electric/?s=fender+jazzmaster",
+        "https://www.frettedamericana.com/guitars/electric/?s=fender+jaguar",
+        "https://www.frettedamericana.com/guitars/electric/?s=fender+stratocaster",
+        # General inventory
         "https://www.frettedamericana.com/inventory/",
     ]
     for url in urls:
