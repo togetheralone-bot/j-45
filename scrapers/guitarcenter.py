@@ -21,8 +21,12 @@ HEADERS = {
 }
 
 PAGES = [
+    # Gibson (original)
     "https://www.guitarcenter.com/Used/Gibson/Acoustic-Guitars.gc",
     "https://www.guitarcenter.com/Vintage/Gibson/Acoustic-Guitars.gc",
+    # Fender
+    "https://www.guitarcenter.com/Used/Fender/Electric-Guitars.gc",
+    "https://www.guitarcenter.com/Vintage/Fender/Electric-Guitars.gc",
 ]
 
 
