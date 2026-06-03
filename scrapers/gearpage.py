@@ -12,7 +12,12 @@ from config import PRICE_MIN, PRICE_MAX
 BASE_URL   = "https://www.thegearpage.net"
 FORUM_URL  = f"{BASE_URL}/board/index.php"
 
-SEARCHES = ["gibson j-45", "gibson j-50", "gibson country western"]
+SEARCHES = [
+    # Gibson (original)
+    "gibson j-45", "gibson j-50", "gibson country western",
+    # Fender
+    "fender jazzmaster vintage", "fender jaguar vintage", "fender stratocaster vintage",
+]
 
 HEADERS = {
     "User-Agent": (
