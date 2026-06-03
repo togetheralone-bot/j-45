@@ -53,6 +53,7 @@ def upsert_listings(listings: list[dict]) -> None:
             "score":         l.get("score", 0),
             "match_reasons": l.get("match_reasons", []),
             "is_j45":        _is_j45(l),
+            "instrument":    l.get("instrument", ""),
             "last_seen":     now,
         })
 
