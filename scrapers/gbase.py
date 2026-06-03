@@ -11,9 +11,12 @@ from config import PRICE_MIN, PRICE_MAX
 BASE_URL = "https://www.gbase.com"
 
 SEARCHES = [
+    # Gibson (original)
     "/gear?Q=gibson+j+45&s=used",
-    "/gear?Q=gibson+j+50&s=used",
-    "/gear?Q=gibson+country+western&s=used",
+    # Fender
+    "/gear?Q=fender+jazzmaster&s=used",
+    "/gear?Q=fender+jaguar&s=used",
+    "/gear?Q=fender+stratocaster+vintage&s=used",
 ]
 
 HEADERS = {
