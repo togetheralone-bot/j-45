@@ -13,9 +13,14 @@ from config import PRICE_MIN, PRICE_MAX
 BASE_URL = "https://bernunzio.com"
 
 SEARCH_URLS = [
+    # Gibson (original)
     f"{BASE_URL}/?s=gibson+j-45&post_type=product",
     f"{BASE_URL}/?s=gibson+j-50&post_type=product",
     f"{BASE_URL}/?s=gibson+country+western&post_type=product",
+    # Fender
+    f"{BASE_URL}/?s=fender+jazzmaster&post_type=product",
+    f"{BASE_URL}/?s=fender+jaguar&post_type=product",
+    f"{BASE_URL}/?s=fender+stratocaster+vintage&post_type=product",
 ]
 
 HEADERS = {
