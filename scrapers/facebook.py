@@ -30,7 +30,12 @@ CITIES = [
     ("Oklahoma City, OK","https://www.facebook.com/marketplace/oklahoma-city/search?query=gibson+j-45&minPrice={min}&maxPrice={max}&radiusKm=100"),
 ]
 
-EXTRA_QUERIES = ["gibson+j-50", "gibson+country+western+guitar"]
+EXTRA_QUERIES = [
+    # Gibson (original)
+    "gibson+j-50", "gibson+country+western+guitar",
+    # Fender
+    "fender+jazzmaster+vintage", "fender+jaguar+vintage", "fender+stratocaster+vintage",
+]
 
 
 def fetch() -> list[dict]:
