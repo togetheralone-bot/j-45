@@ -2,14 +2,16 @@
 Filter and scoring engine.
 Checks each listing against all instruments in config.INSTRUMENTS.
 A listing passes if it matches ANY instrument's criteria.
+
+Instrument order matters — more specific models first to avoid
+cross-contamination (e.g. "Stratocaster" appearing in a Jaguar description).
 """
 
 import re
 from config import INSTRUMENTS, BOOST_TERMS
 
-# Parts/non-whole-guitar exclusions — checked against title+description
+# Parts/non-whole-guitar exclusions
 PARTS_TERMS = [
-    # Explicit parts phrases
     "body only", "neck only", "body & neck", "body and neck",
     "parts guitar", "parts only", "project guitar", "parts/project",
     "for parts", "as-is parts", "body blank",
@@ -18,7 +20,6 @@ PARTS_TERMS = [
     "tuning machine", "tuning peg",
     "tremolo arm", "tremolo only",
     "nut only", "fretboard only", "fingerboard only",
-    # Instrument-specific body/neck
     "stratocaster body", "strat body",
     "stratocaster neck", "strat neck",
     "jazzmaster body", "jazzmaster neck",
@@ -28,23 +29,32 @@ PARTS_TERMS = [
     "guitar body", "guitar neck",
 ]
 
-# These are checked against the TITLE only (too risky in description)
 TITLE_PARTS_TERMS = [
     " body ", "- body", "body -", "(body)",
     " neck ", "- neck", "neck -", "(neck)",
     "project body", "refinish body",
 ]
 
+# Instrument match priority — title match beats description match.
+# We check the TITLE first; if it matches a model, we trust that over
+# anything found only in the description.
+TITLE_PRIORITY_MODELS = {
+    "jazzmaster": "Fender Jazzmaster",
+    "jaguar":     "Fender Jaguar",
+    "j-45":       "Gibson J-45",
+    "j45":        "Gibson J-45",
+    "stratocaster": "Fender Stratocaster",
+    "strat":      "Fender Stratocaster",
+}
+
 
 def filter_and_score(listings: list[dict]) -> list[dict]:
     passed = []
-
     for listing in listings:
         result = _evaluate(listing)
         if result:
             passed.append(result)
 
-    # Deduplicate by ID
     seen = set()
     deduped = []
     for l in passed:
@@ -61,22 +71,47 @@ def _evaluate(listing: dict) -> dict | None:
     desc  = listing.get("description", "").lower()
     blob  = f"{title} {desc}"
 
-    # Full blob parts check
+    # Global parts filter
     for term in PARTS_TERMS:
         if term in blob:
             return None
 
-    # Title-only parts check (catches "1964 Strat Body" etc.)
     title_padded = f" {title} "
     for term in TITLE_PARTS_TERMS:
         if term in title_padded:
             return None
 
+    # Find which instrument the TITLE most specifically matches,
+    # then only try that instrument first. This prevents "Stratocaster"
+    # in a Jaguar description from winning.
+    title_instrument = _title_instrument(title)
+
+    if title_instrument:
+        # Try the title-matched instrument first
+        for inst in INSTRUMENTS:
+            if inst["name"] == title_instrument:
+                result = _match_instrument(listing, blob, inst)
+                if result:
+                    return result
+                break
+        # If it didn't pass (price/year/exclusion), don't try other instruments
+        return None
+
+    # No clear title match — try all instruments in order
     for inst in INSTRUMENTS:
         result = _match_instrument(listing, blob, inst)
         if result:
             return result
 
+    return None
+
+
+def _title_instrument(title: str) -> str | None:
+    """Return instrument name if title clearly names a specific model."""
+    # Check most specific terms first
+    for term, name in TITLE_PRIORITY_MODELS.items():
+        if term in title:
+            return name
     return None
 
 
@@ -94,7 +129,7 @@ def _match_instrument(listing: dict, blob: str, inst: dict) -> dict | None:
         if term.lower() in blob:
             return None
 
-    # 4. Year check — a year in range must be explicitly mentioned
+    # 4. Year check
     years_found = re.findall(r"\b(19[3-9]\d)\b", blob)
     if not years_found:
         return None
@@ -109,15 +144,14 @@ def _match_instrument(listing: dict, blob: str, inst: dict) -> dict | None:
             return None
 
     # 6. Boost scoring
-    score = 3  # base for year match
+    score = 3
     match_reasons = [f"year: {', '.join(set(in_range))}"]
-
     for term in BOOST_TERMS:
         if term.lower() in blob:
             score += 1
             match_reasons.append(term)
 
-    listing = dict(listing)  # don't mutate original
+    listing = dict(listing)
     listing["score"]         = score
     listing["match_reasons"] = match_reasons
     listing["instrument"]    = inst["name"]
