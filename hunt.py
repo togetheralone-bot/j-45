@@ -24,7 +24,6 @@ SCRAPER_MODULES = [
     ("eBay",                 ebay.fetch),
     ("GBase",                gbase.fetch),
     ("Dealers",              dealers.fetch),
-    ("Craigslist",           craigslist.fetch),
     ("Facebook Marketplace", facebook.fetch),
     ("Guitar Forum",         agf.fetch),
     ("Guitar Center",        guitarcenter.fetch),
@@ -32,7 +31,6 @@ SCRAPER_MODULES = [
     ("Bernunzio",            bernunzio.fetch),
     ("More Dealers",         more_dealers.fetch),
     ("Carter Vintage",       carter.fetch),
-    ("Norman's /shop/",      normans.fetch),
     ("Southside Guitars",    southsideguitars.fetch),
 ]
 
