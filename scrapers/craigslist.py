@@ -17,7 +17,12 @@ CITIES = {
     "oklahomacity":  "Oklahoma City, OK",
 }
 
-QUERIES = ["gibson+j-45", "gibson+j-50", "gibson+country+western"]
+QUERIES = [
+    # Gibson (original)
+    "gibson+j-45", "gibson+j-50", "gibson+country+western",
+    # Fender
+    "fender+jazzmaster", "fender+jaguar", "fender+stratocaster+vintage",
+]
 
 HEADERS = {
     "User-Agent": (
