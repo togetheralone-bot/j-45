@@ -2,13 +2,9 @@
 Guitar Hunter — Search Configuration
 Edit this file to change what you're hunting for.
 """
-
 import os
 
 # ── Instruments ──────────────────────────────────────────────────
-# Each entry defines a guitar to hunt for.
-# filter.py checks every listing against ALL instruments.
-
 INSTRUMENTS = [
     {
         "name":      "Gibson J-45",
@@ -17,7 +13,7 @@ INSTRUMENTS = [
         "year_min":  1956,
         "year_max":  1965,
         "price_min": 2000,
-        "price_max": 7000,
+        "price_max": 6500,
         "exclude_terms": [
             '1 9/16"', "1 9/16", "1-9/16",
             "reissue", "re-issue", "replica", "copy", "tribute",
@@ -47,7 +43,7 @@ INSTRUMENTS = [
         "year_min":  1958,
         "year_max":  1965,
         "price_min": 2000,
-        "price_max": 5500,
+        "price_max": 5000,
         "exclude_terms": [
             "reissue", "re-issue", "mij", "japan", "japanese",
             "vintage ii", "vintage 2", "modern", "brand new",
