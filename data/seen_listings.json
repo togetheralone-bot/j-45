@@ -25,7 +25,10 @@
     "garys_https___www_garysguitars_com_catalog_1961_gibson_j_50_adj",
     "garys_https___www_garysguitars_com_catalog_1962_gibson_j_50_0",
     "gbase__gbase_com_gear_fender_stratocaster_1963_three_tone_sunburst",
+    "gbase_https___www_gbase_com_gear_fender_jaguar_1962_green_sparkle",
+    "gbase_https___www_gbase_com_gear_fender_jaguar_1965_1",
     "gbase_https___www_gbase_com_gear_fender_jaguar_1965_dakota_red_5",
+    "gbase_https___www_gbase_com_gear_fender_jaguar_1965_red",
     "gbase_https___www_gbase_com_gear_gibson_j_45_1956_sunburst_5",
     "gbase_https___www_gbase_com_gear_gibson_j_45_1958_sunburst_3",
     "gbase_https___www_gbase_com_gear_gibson_j_45_1959_sunburst_6",
@@ -47,10 +50,13 @@
     "gbase_https___www_gbase_com_gear_gibson_j_50_1965_natural_14",
     "gbase_https___www_gbase_com_gear_gibson_j_50_adj_1961_natural",
     "gbase_https___www_gbase_com_gear_gibson_j_50adj_1960_natural",
+    "gbase_ps___www_gbase_com_gear_fender_jaguar_1964_tangerine_sparkle",
+    "gbase_ps___www_gbase_com_gear_fender_jaguar_1965_candy_apple_red_2",
     "gbase_s___www_gbase_com_gear_fender_jaguar_1964_candy_apple_red_13",
     "gbase_s___www_gbase_com_gear_gibson_country_western_1960_natural_3",
     "gbase_s___www_gbase_com_gear_gibson_country_western_1962_natural_1",
     "gbase_tps___www_gbase_com_gear_gibson_j_50_adj_1963_naturalvintage",
+    "gbase_www_gbase_com_gear_fender_jaguar_1965_gold_champagne_sparkle",
     "musiczoo_gibson-1958-southern-jumbo-acoustic-electric-made-",
     "retrofret_gibson-j-45-adj-flat-top-acoustic-guitar-1967-1336",
     "retrofret_gibson-j-45-flat-top-acoustic-guitar-1968-13584",
@@ -93,6 +99,6 @@
     "southside_sideguitars_com_products_1964_gibson_j_50_natural_p828034405",
     "trcrandall_1964-gibson-j-50-sn85067"
   ],
-  "updated_at": "2026-06-05T19:06:54.024740+00:00",
-  "count": 92
+  "updated_at": "2026-06-05T19:12:19.410837+00:00",
+  "count": 98
 }
