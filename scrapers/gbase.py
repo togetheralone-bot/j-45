@@ -30,6 +30,8 @@ HEADERS = {
     "Referer": "https://www.gbase.com/",
 }
 
+SOLD_MARKERS = ["*sold", "* sold", "sold *", "[sold]", "(sold)", "- sold", "sold-", "**sold"]
+
 
 def fetch() -> list[dict]:
     results = []
@@ -75,6 +77,11 @@ def fetch() -> list[dict]:
                 if price and not (PRICE_MIN <= price <= PRICE_MAX):
                     continue
 
+                # Skip sold listings
+                check = (title + " " + (desc or "")).lower()
+                if any(marker in check for marker in SOLD_MARKERS):
+                    continue
+
                 results.append({
                     "source":      "GBase",
                     "id":          f"gbase_{_slug(full_url)}",
@@ -99,20 +106,9 @@ def fetch() -> list[dict]:
 
 
 def _clean_title(text: str) -> str:
-    """Strip the dealer name and price from GBase concatenated title strings.
-
-    GBase text format: "1964 Gibson J-50 NaturalSouthside Guitars$4,850"
-    Target output:     "1964 Gibson J-50 Natural"
-
-    The guitar descriptor ends with a known set of finish/feature words.
-    Everything after the last known descriptor word is the dealer name run-on.
-    """
-    # Cut at the dollar sign first
-    price_match = re.search(r"\$[\d,]+", text)
+    price_match  = re.search(r"\$[\d,]+", text)
     before_price = text[:price_match.start()].strip() if price_match else text.strip()
 
-    # Known words that legitimately end a guitar title description
-    # After any of these, the rest is the dealer name concatenated on
     END_WORDS = [
         "sunburst", "natural", "burst", "cherry", "black", "blonde",
         "adj", "adv", "original", "case", "ohsc", "refret", "neck",
@@ -131,11 +127,9 @@ def _clean_title(text: str) -> str:
                 best_pos = end
                 best_cut = before_price[:end].strip()
 
-    # Only use the cut if it's a reasonable portion of the original
     if best_pos > 8 and len(best_cut) >= 10:
         return best_cut
 
-    # Fallback: cut at first run-on capital (no space before capital mid-string)
     fallback = re.sub(r"([a-z])([A-Z][a-z])", r"\1", before_price).strip()
     return fallback if len(fallback) >= 10 else before_price
 
