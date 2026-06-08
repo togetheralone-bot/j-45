@@ -59,10 +59,15 @@ SHOPIFY_DEALERS = [
         "base":      "https://www.themusiczoo.com",
         "id_prefix": "musiczoo",
     },
-    {
+{
         "name":      "Cream City Music",
         "base":      "https://www.creamcitymusic.com",
         "id_prefix": "creamcity",
+    },
+    {
+        "name":      "Rudy's Music",
+        "base":      "https://rudysmusic.com",
+        "id_prefix": "rudys",
     },
 ]
 
