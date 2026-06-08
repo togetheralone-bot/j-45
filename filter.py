@@ -81,6 +81,12 @@ def _evaluate(listing: dict) -> dict | None:
         if term in title_padded:
             return None
 
+    # Reject if a modern year (2000+) appears in the title — these are
+    # reissues, commemoratives, or modern guitars mismatching a vintage year
+    import re as _re
+    if _re.search(r"\b20[0-9]{2}\b", title):
+        return None
+
     # Find which instrument the TITLE most specifically matches,
     # then only try that instrument first. This prevents "Stratocaster"
     # in a Jaguar description from winning.
