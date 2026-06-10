@@ -8,6 +8,7 @@
     "ebay_127847992905",
     "ebay_127884822530",
     "ebay_127911564368",
+    "ebay_147364866856",
     "ebay_157977439798",
     "ebay_157977439814",
     "ebay_188482825359",
@@ -42,6 +43,8 @@
     "gbase_https___www_gbase_com_gear_fender_jaguar_1965_dakota_red_5",
     "gbase_https___www_gbase_com_gear_fender_jaguar_1965_red",
     "gbase_https___www_gbase_com_gear_fender_jazzmaster_1959_1",
+    "gbase_https___www_gbase_com_gear_fender_jazzmaster_1960_sunburst_3",
+    "gbase_https___www_gbase_com_gear_fender_swinger_1969_red",
     "gbase_https___www_gbase_com_gear_gibson_j_45_1956_sunburst_5",
     "gbase_https___www_gbase_com_gear_gibson_j_45_1958_sunburst_3",
     "gbase_https___www_gbase_com_gear_gibson_j_45_1959_sunburst_6",
@@ -68,8 +71,10 @@
     "gbase_s___www_gbase_com_gear_fender_jaguar_1964_candy_apple_red_13",
     "gbase_s___www_gbase_com_gear_gibson_country_western_1960_natural_3",
     "gbase_s___www_gbase_com_gear_gibson_country_western_1962_natural_1",
+    "gbase_tps___www_gbase_com_gear_fender_jazzmaster_1962_fiesta_red_4",
     "gbase_tps___www_gbase_com_gear_gibson_j_45_cs_1963_cherry_sunburst",
     "gbase_tps___www_gbase_com_gear_gibson_j_50_adj_1963_naturalvintage",
+    "gbase_ttps___www_gbase_com_gear_fender_jazzmaster_1959_sunburst_39",
     "gbase_www_gbase_com_gear_fender_jaguar_1965_gold_champagne_sparkle",
     "musiczoo_gibson-1958-southern-jumbo-acoustic-electric-made-",
     "retrofret_gibson-j-45-adj-flat-top-acoustic-guitar-1967-1336",
@@ -117,6 +122,6 @@
     "southside_sideguitars_com_products_1964_gibson_j_50_natural_p828034405",
     "trcrandall_1964-gibson-j-50-sn85067"
   ],
-  "updated_at": "2026-06-10T13:27:01.786040+00:00",
-  "count": 116
+  "updated_at": "2026-06-10T13:32:22.630558+00:00",
+  "count": 121
 }
