@@ -119,6 +119,7 @@
     "gbase_s___www_gbase_com_gear_gibson_country_western_1962_natural_1",
     "gbase_tps___www_gbase_com_gear_fender_jazzmaster_1962_fiesta_red_4",
     "gbase_tps___www_gbase_com_gear_gibson_j_45_cs_1963_cherry_sunburst",
+    "gbase_tps___www_gbase_com_gear_gibson_j_45_cs_1964_cherry_sunburst",
     "gbase_tps___www_gbase_com_gear_gibson_j_50_adj_1963_naturalvintage",
     "gbase_ttps___www_gbase_com_gear_fender_jazzmaster_1959_sunburst_39",
     "gbase_www_gbase_com_gear_fender_jaguar_1965_gold_champagne_sparkle",
@@ -206,6 +207,6 @@
     "trcrandall_1960-gibson-j-45",
     "trcrandall_1964-gibson-j-50-sn85067"
   ],
-  "updated_at": "2026-07-29T04:07:21.905994+00:00",
-  "count": 205
+  "updated_at": "2026-07-29T04:11:52.140488+00:00",
+  "count": 206
 }
