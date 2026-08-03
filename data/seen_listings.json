@@ -137,6 +137,7 @@
     "retrofret_gibson-j-45-flat-top-acoustic-guitar-1968-13584",
     "retrofret_gibson-j-50-adj-flat-top-acoustic-guitar-1965-1317",
     "retrofret_gibson-j-50-adj-flat-top-acoustic-guitar-1965-1385",
+    "reverb_100058022",
     "reverb_49262187",
     "reverb_60353636",
     "reverb_75973538",
@@ -217,6 +218,6 @@
     "trcrandall_1960-gibson-j-45",
     "trcrandall_1964-gibson-j-50-sn85067"
   ],
-  "updated_at": "2026-08-03T18:09:34.288073+00:00",
-  "count": 216
+  "updated_at": "2026-08-03T18:14:09.748938+00:00",
+  "count": 217
 }
